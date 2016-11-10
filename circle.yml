@@ -4,4 +4,4 @@ deployment:
   staging:
     branch: master
     heroku:
-      appname: sep_market
+      appname: sepima
