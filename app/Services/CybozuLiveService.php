@@ -21,9 +21,9 @@ class CybozuLiveService
     private $xauth_access_token_url = 'https://api.cybozulive.com/oauth/token';
     private $x_auth_mode            = 'client_auth';
 
-    private $group_name         = '自分用グループ';    // 投稿の対象とするグループ名
+    private $group_name         = '(株)エス・イー・プロジェクト';    // 投稿の対象とするグループ名
     private $get_group_id_url   = "https://api.cybozulive.com/api/group/V2";
-    private $topic_name         = 'メモするトピ';
+    private $topic_name         = '気になるワードをメモるトピ';
     private $get_topic_id_url   = "https://api.cybozulive.com/api/board/V2";
     private $post_comment_url   = "https://api.cybozulive.com/api/board/V2";
     private $get_rss_url        = "http://b.hatena.ne.jp/hotentry/it.rss?of=1&";
