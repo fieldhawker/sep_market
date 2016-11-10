@@ -29,7 +29,7 @@ class Kernel extends ConsoleKernel
         //          ->hourly();
 
         $schedule->command('postinterestingarticle')
-          ->weekdays()->at('23:50');
+          ->weekdays()->at('00:00');
         
     }
 }
