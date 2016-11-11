@@ -22,7 +22,9 @@
         "phpmd/phpmd" : "*",
         "filp/whoops": "2.*",
         "almasaeed2010/adminlte": "2.*",
-        "phpdocumentor/phpdocumentor": "2.*"
+        "phpdocumentor/phpdocumentor": "2.*",
+        "guzzlehttp/guzzle": "6.*",
+        "facebook/webdriver": "1.2.*"
     },
     "autoload": {
         "classmap": [

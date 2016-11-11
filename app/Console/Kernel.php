@@ -14,7 +14,8 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         // Commands\Inspire::class,
-        \App\Console\Commands\PostInterestingArticle::class, // サイボウズLIVEへの興味深い記事の投稿
+        \App\Console\Commands\PostInterestingArticle::class,    // サイボウズLIVEへの興味深い記事の投稿
+        \App\Console\Commands\PostDailyInformation::class,      // 毎日のトピックスをサイボウズLIVEに投稿します
     ];
 
     /**
@@ -28,8 +29,8 @@ class Kernel extends ConsoleKernel
         // $schedule->command('inspire')
         //          ->hourly();
 
-        $schedule->command('postinterestingarticle')
-          ->dailyAt('0:25');
+//        $schedule->command('postinterestingarticle')
+//          ->dailyAt('0:25');
         
     }
 }

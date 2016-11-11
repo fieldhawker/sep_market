@@ -38,4 +38,85 @@ class CybozuLiveServiceTest extends TestCase
         $this->assertGreaterThan(0, mb_strlen($token["oauth_token_secret"]));
     }
 
+
+    /**
+     * 興味深い記事の投稿に成功するか
+     *
+     */
+    public function testPostInterestingArticle()
+    {
+        $user = [
+          'x_auth_username' => env('CYBOZULIVE_USER_NAME'),
+          'x_auth_password' => env('CYBOZULIVE_PASSWORD'),
+          //          'x_auth_username' => env('CYBOZULIVE_USER_NAME_DEV'),
+          //          'x_auth_password' => env('CYBOZULIVE_PASSWORD_DEV'),
+        ];
+
+        $this->service->setUser($user);
+//        $this->service->setGroupName('検証用グループ');
+//        $this->service->setTopicName('検証用トピック');
+        $this->service->setGroupName('自分用グループ');
+        $this->service->setTopicName('メモするトピ');
+
+        $result = $this->service->postInterestingArticle();
+
+        $this->assertTrue($result);
+
+        $token = $this->service->getAccessTokenInfo();
+        $this->assertGreaterThan(0, mb_strlen($token["oauth_token"]));
+        $this->assertGreaterThan(0, mb_strlen($token["oauth_token_secret"]));
+
+        $group_id = $this->service->getGroupId();
+        $this->assertGreaterThan(0, mb_strlen($group_id));
+
+        $topic_id = $this->service->getTopicId();
+        $this->assertGreaterThan(0, mb_strlen($topic_id));
+
+        $article = $this->service->getArticle();
+        $this->assertGreaterThan(0, mb_strlen($article["title"]));
+        $this->assertGreaterThan(0, mb_strlen($article["link"]));
+
+        $message         = $this->service->getMessage();
+        $comment_message = nl2br($article["title"] . PHP_EOL . $article["link"]);
+
+        $xmlString = <<< EOM
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:cbl="http://schemas.cybozulive.com/common/2010">
+  <cbl:operation type="insert"/>
+  <id>$topic_id</id>
+  <entry>
+    <summary type="text">$comment_message</summary>
+  </entry>
+</feed>
+EOM;
+
+        $this->assertEquals($message, $xmlString);
+
+    }
+
+    /**
+     * デイリー情報の投稿に成功するか
+     *
+     */
+    public function testPostDailyInformation()
+    {
+        $user = [
+          'x_auth_username' => env('CYBOZULIVE_USER_NAME'),
+          'x_auth_password' => env('CYBOZULIVE_PASSWORD'),
+//          'x_auth_username' => env('CYBOZULIVE_USER_NAME_DEV'),
+//          'x_auth_password' => env('CYBOZULIVE_PASSWORD_DEV'),
+        ];
+
+        $this->service->setUser($user);
+//        $this->service->setGroupName('検証用グループ');
+//        $this->service->setTopicName('検証用トピック');
+        $this->service->setGroupName('自分用グループ');
+        $this->service->setTopicName('メモするトピ');
+
+        $result = $this->service->postDailyInformation();
+
+        $this->assertTrue($result);
+
+    }
 }
