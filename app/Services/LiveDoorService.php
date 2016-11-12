@@ -74,11 +74,19 @@ class LiveDoorService
         $weather_info['label']    = $weather['forecasts'][0]['dateLabel'];
         $weather_info['telop']    = $weather['forecasts'][0]['telop'];
 
-        $weather_info['temp_min'] =  (array_key_exists('celsius', $weather['forecasts'][0]['temperature']['min'])) 
-            ? $weather['forecasts'][0]['temperature']['min']['celsius'] : null;
+        $is_min = (
+          is_array($weather['forecasts'][0]['temperature']['min'])
+          && 
+          array_key_exists('celsius', $weather['forecasts'][0]['temperature']['min']));
 
-        $weather_info['temp_max'] =  (array_key_exists('celsius', $weather['forecasts'][0]['temperature']['max']))
-          ? $weather['forecasts'][0]['temperature']['max']['celsius'] : null;
+        $is_max = (
+          is_array($weather['forecasts'][0]['temperature']['max'])
+          && 
+          array_key_exists('celsius', $weather['forecasts'][0]['temperature']['max']));
+
+        
+        $weather_info['temp_min'] = ($is_min) ? $weather['forecasts'][0]['temperature']['min']['celsius'] : null;
+        $weather_info['temp_max'] = ($is_max) ? $weather['forecasts'][0]['temperature']['max']['celsius'] : null;
 
         Log::info("取得した天気情報", $weather_info);
 
