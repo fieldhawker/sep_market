@@ -603,11 +603,14 @@ class CybozuLiveService
             $border = self::BORDER;
 
             $eom_message = <<< EOM
-$border
-☆月末が近づいています。忘れずに勤務表を提出してくださいね。
+☆月末が近づいています。忘れずに勤務表を提出してください。
 
-ファイル名はXXXX勤務表(SEP用)_氏名$year$month.xlsの形式でアップしてください。
-※XXXXは社員番号下桁になります。
+【諸注意】勤務表のファイル名は 
+XXXX勤務表(SEP用)_氏名$year$month.xls
+XXXX：社員番号下桁
+の形式でアップしてください。
+
+$border
 EOM;
             $comment_message
                          = sprintf('%s%s%s%s', $comment_message, $eom_message, PHP_EOL, PHP_EOL);
@@ -620,11 +623,12 @@ EOM;
             $border = self::BORDER;
 
             $monday_message = <<< EOM
-$border
-☆今日は月曜日です。週報を提出しましょー。
+☆月曜日です。週報の提出日になります。
 
 提出はこちらからお願いします。
 https://se-project.co.jp/cgi-bin/weeklyreport/index.cgi
+
+$border
 EOM;
 
             $comment_message
@@ -633,9 +637,6 @@ EOM;
 
         $comment_message
           = sprintf('%s%s%s%s', $comment_message, $this->createWeatherMessage(), PHP_EOL, PHP_EOL);
-
-        $comment_message
-          = sprintf('%s%s%s', $comment_message, self::BORDER, PHP_EOL);
 
         // 投稿用XMLの生成
         $xmlString = $this->getXmlString($topic_id, $comment_message);
@@ -695,58 +696,101 @@ EOM;
 
 
     /**
-     * @param $comment_message
-     *
      * @return string
      */
     public function createWeatherMessage()
     {
         // 天気情報を元にメッセージを作成
         $weather_info = $this->livedoor->getWeatherInfo();
-        $border       = self::BORDER . PHP_EOL;
 
         if (!is_array($weather_info)) {
             return '';
         }
 
-        $weather_message = sprintf('%s☆%sの%sの天気は「%s」です。%s',
-          $border, $weather_info['label'], $weather_info['pref'], $weather_info['telop'], PHP_EOL);
+        $border          = self::BORDER;
+        $weather_message = '';
+        $temp_message    = '';
+        $other_message   = '';
+
+        $weather_message = sprintf('☆%sの%sの天気は「%s」です。',
+          $weather_info['label'], $weather_info['pref'], $weather_info['telop']);
 
         $min = $weather_info['temp_min'];
         $max = $weather_info['temp_max'];
 
-        if (!empty($min)) {
-            $weather_message .= sprintf('最低気温は%s度 ', $min);
-        }
-        if (!empty($max)) {
-            $weather_message .= sprintf('最高気温は%s度 ', $max);
-        }
-        if (!empty($min) || !empty($max)) {
-            $weather_message .= sprintf('になります。%s', PHP_EOL);
-        }
+        $temp_message = $this->createTempMessage($max, $min);
 
+        $temp_other_message = $this->createTempOtherMessage($max, $min);
+
+        $weather_message = <<< EOM
+$weather_message
+$temp_message
+$temp_other_message
+$border
+EOM;
+
+        return $weather_message;
+    }
+
+
+    /**
+     * @param $max
+     * @param $min
+     *
+     * @return string
+     */
+    public function createTempOtherMessage($max, $min, $num=null)
+    {
+        $temp_other_message = '';
+        
         if (!empty($max) && is_numeric($max) && $max < self::COLD_CASE) {
 
-            $num = mt_rand(0, $this->max_article_target);
+            $num = (is_null) ? mt_rand(0, $this->max_article_target) : $num;
 
             switch ($num) {
                 case 1:
                 case 3:
                 case 8:
-                    $weather_message .= sprintf('%s今日は寒いですよー。', PHP_EOL);
+                    $temp_other_message = sprintf('今日は寒いですよー。');
                     break;
                 case 2:
                 case 5:
                 case 7:
-                    $weather_message .= sprintf('%s風邪に注意してくださいね。', PHP_EOL);
+                    $temp_other_message = sprintf('風邪に注意してくださいね。');
                     break;
                 default:
-                    $weather_message .= sprintf('%s温かい服装で出掛けてくださいね。', PHP_EOL);
+                    $temp_other_message = sprintf('温かい服装で出掛けてくださいね。');
                     break;
             }
 
+            $temp_other_message = PHP_EOL . $temp_other_message . PHP_EOL;
+
         }
 
-        return $weather_message;
+        return $temp_other_message;
+    }
+
+
+    /**
+     * @param $max
+     * @param $min
+     *
+     * @return string
+     */
+    public function createTempMessage($max, $min)
+    {
+        $temp_message = '';
+        
+        if (!empty($min)) {
+            $temp_message .= sprintf('最低気温は%s度 ', $min);
+        }
+        if (!empty($max)) {
+            $temp_message .= sprintf('最高気温は%s度 ', $max);
+        }
+        if (!empty($min) || !empty($max)) {
+            $temp_message .= sprintf('になります。');
+        }
+
+        return $temp_message;
     }
 }
