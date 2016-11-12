@@ -423,11 +423,36 @@ class CybozuLiveService
 
         $rss = $this->get_rss_url . time();
 
-        $agent    = stream_context_create(array('http' => array('user_agent' => $this->user_agent))); //chrome
-        $str      = file_get_contents($rss, false, $agent);
-        $xml      = simplexml_load_string($str);
-        $json     = json_encode($xml);
-        $articles = json_decode($json, true);
+        try {
+
+            $request = new \HTTP_Request2();
+            $request->setConfig('ssl_verify_peer', false);
+            $request->setMethod(\HTTP_Request2::METHOD_GET);
+            $request->setHeader(array(
+              'Referer'    => $rss,
+              'User-Agent' => $this->user_agent,
+              'Connection' => 'close'
+            ));
+
+            $response = $request->setUrl($rss)->send();
+
+            // HTTPステータスチェック
+            if ($response->getStatus() !== 200) {
+                throw new \Exception($response->getBody(), $response->getStatus());
+            }
+
+            $str      = $response->getBody();
+            $xml      = simplexml_load_string($str);
+            $json     = json_encode($xml);
+            $articles = json_decode($json, true);
+
+        } catch (\HTTP_Request2_Exception $hr2e) {
+            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
+            exit;
+        } catch (\Exception $e) {
+            Log::info('Exception', ['e' => $e]);
+            exit;
+        }
 
         $num = mt_rand(0, $this->max_article_target);
 
@@ -618,8 +643,7 @@ class CybozuLiveService
     /**
      * @return bool
      */
-    public
-    function createMessageForInteresting()
+    public function createMessageForInteresting()
     {
         // 掲示板のIDを取得
         $topic_id = $this->getTopicId();
@@ -644,8 +668,7 @@ class CybozuLiveService
      *
      * @return string
      */
-    public
-    function getXmlString(
+    public function getXmlString(
       $topic_id,
       $comment_message
     ) {

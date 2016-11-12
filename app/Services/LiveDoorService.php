@@ -4,6 +4,7 @@ namespace App\Services;
 use Log;
 use Util;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\TransferException;
 
 /**
  * Class LiveDoorService
@@ -13,7 +14,7 @@ class LiveDoorService
 
     private $client;
     private $weather_info;
-    
+
     const WEATHER_PREF         = '130010';  // 東京
     const GET_WEATHER_INFO_URL = 'http://weather.livedoor.com/forecast/webservice/json/v1';
 
@@ -43,7 +44,11 @@ class LiveDoorService
         Util::generateLogMessage('START');
 
         // 天気を取得
-        $this->requestWeather();
+        $result = $this->requestWeather();
+
+        if (!$result) {
+            Log::info("天気の取得に失敗しました");
+        }
 
         Util::generateLogMessage('END');
 
@@ -51,40 +56,52 @@ class LiveDoorService
 
     }
 
+
     /**
-     * 天気を取得する
+     * 天気情報を取得します
      *
      * @return bool
+     * @throws \Exception
      */
     public function requestWeather()
     {
 
         Util::generateLogMessage('START');
 
-        $client = new Client();
-        $res    = $client->get(self::GET_WEATHER_INFO_URL, [
-          'query' => [
-            'city' => self::WEATHER_PREF,
-          ],
-        ]);
+        try {
+
+            $client = new Client();
+            $res    = $client->get(self::GET_WEATHER_INFO_URL, [
+              'query' => [
+                'city' => self::WEATHER_PREF,
+              ],
+            ]);
+
+            if ($res->getStatusCode() !== 200) {
+                throw new \Exception($res->getBody(), $res->getStatusCode());
+            }
+
+        } catch (\TransferException $e) {
+            Log::info('Exception', ['e' => $e]);
+            exit;
+        }
 
         $weather = json_decode($res->getBody(), true);
 
-        $weather_info['pref']     = $weather['location']['prefecture'];
-        $weather_info['label']    = $weather['forecasts'][0]['dateLabel'];
-        $weather_info['telop']    = $weather['forecasts'][0]['telop'];
+        $weather_info['pref']  = $weather['location']['prefecture'];
+        $weather_info['label'] = $weather['forecasts'][0]['dateLabel'];
+        $weather_info['telop'] = $weather['forecasts'][0]['telop'];
 
         $is_min = (
           is_array($weather['forecasts'][0]['temperature']['min'])
-          && 
+          &&
           array_key_exists('celsius', $weather['forecasts'][0]['temperature']['min']));
 
         $is_max = (
           is_array($weather['forecasts'][0]['temperature']['max'])
-          && 
+          &&
           array_key_exists('celsius', $weather['forecasts'][0]['temperature']['max']));
 
-        
         $weather_info['temp_min'] = ($is_min) ? $weather['forecasts'][0]['temperature']['min']['celsius'] : null;
         $weather_info['temp_max'] = ($is_max) ? $weather['forecasts'][0]['temperature']['max']['celsius'] : null;
 
