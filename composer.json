@@ -10,7 +10,9 @@
         "pear/net_url2": "^2.2.0",
         "pear/pear_exception": "^1.0.0",
         "pear/http_request2": "2.3.*",
-        "pear/http_oauth": "0.3.*"
+        "pear/http_oauth": "0.3.*",
+        "guzzlehttp/guzzle": "6.*",
+        "facebook/webdriver": "1.2.*"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",
@@ -22,9 +24,7 @@
         "phpmd/phpmd" : "*",
         "filp/whoops": "2.*",
         "almasaeed2010/adminlte": "2.*",
-        "phpdocumentor/phpdocumentor": "2.*",
-        "guzzlehttp/guzzle": "6.*",
-        "facebook/webdriver": "1.2.*"
+        "phpdocumentor/phpdocumentor": "2.*"
     },
     "autoload": {
         "classmap": [
