@@ -587,15 +587,49 @@ class CybozuLiveService
     /**
      * @internal param mixed $message
      */
-    public function createMessageForDaily()
+    public function createMessageForDaily($date = null)
     {
+        // 日付型チェック
+        if (is_null($date) || $date !== date("Y-m-d", strtotime($date))) {
+            $date = date('Y-m-d');
+        }
+
+        // 月末までの日数
+        $diff_days    = (strtotime(date('Y-m-t')) - strtotime($date)) / (60 * 60 * 24);
+        $end_of_month = ($diff_days <= 5);
+
+        // 曜日
+        $monday = (date('w', strtotime($date)) == '0');
 
         // 掲示板のIDを取得
         $topic_id        = $this->getTopicId();
         $comment_message = '';
 
+
+        // 天気の情報を設定
+        $comment_message
+          = sprintf('%s%s%s%s', $comment_message, $this->createWeatherMessage(), PHP_EOL, PHP_EOL);
+
+
+        // 月曜
+        if ($monday) {
+
+            $border = self::BORDER;
+
+            $monday_message = <<< EOM
+☆月曜日です。週報の提出日になります。
+
+提出はこちらからお願いします。
+https://se-project.co.jp/cgi-bin/weeklyreport/index.cgi
+
+$border
+EOM;
+
+            $comment_message
+              = sprintf('%s%s%s%s', $comment_message, $monday_message, PHP_EOL, PHP_EOL);
+        }
+
         // 月末
-        $end_of_month = 1;
         if ($end_of_month) {
 
             $year   = date('Y');
@@ -616,27 +650,6 @@ EOM;
                          = sprintf('%s%s%s%s', $comment_message, $eom_message, PHP_EOL, PHP_EOL);
         }
 
-        // 月曜
-        $monday = 1;
-        if ($monday) {
-
-            $border = self::BORDER;
-
-            $monday_message = <<< EOM
-☆月曜日です。週報の提出日になります。
-
-提出はこちらからお願いします。
-https://se-project.co.jp/cgi-bin/weeklyreport/index.cgi
-
-$border
-EOM;
-
-            $comment_message
-              = sprintf('%s%s%s%s', $comment_message, $monday_message, PHP_EOL, PHP_EOL);
-        }
-
-        $comment_message
-          = sprintf('%s%s%s%s', $comment_message, $this->createWeatherMessage(), PHP_EOL, PHP_EOL);
 
         // 投稿用XMLの生成
         $xmlString = $this->getXmlString($topic_id, $comment_message);
@@ -723,7 +736,7 @@ EOM;
         $temp_other_message = $this->createTempOtherMessage($max, $min);
 
         $weather_message = <<< EOM
-$weather_message
+おはようございます！$weather_message
 $temp_message
 $temp_other_message
 $border
@@ -739,10 +752,10 @@ EOM;
      *
      * @return string
      */
-    public function createTempOtherMessage($max, $min, $num=null)
+    public function createTempOtherMessage($max, $min, $num = null)
     {
         $temp_other_message = '';
-        
+
         if (!empty($max) && is_numeric($max) && $max < self::COLD_CASE) {
 
             $num = (is_null) ? mt_rand(0, $this->max_article_target) : $num;
@@ -780,7 +793,7 @@ EOM;
     public function createTempMessage($max, $min)
     {
         $temp_message = '';
-        
+
         if (!empty($min)) {
             $temp_message .= sprintf('最低気温は%s度 ', $min);
         }
