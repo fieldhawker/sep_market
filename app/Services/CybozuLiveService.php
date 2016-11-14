@@ -718,15 +718,15 @@ EOM;
     {
         $temp_other_message = '';
 
-        if (!empty($max) && is_numeric($max) && $max < self::COLD_CASE) {
+        if (!empty($max) && is_numeric($max) && $max <= self::COLD_CASE) {
 
-            $num = (is_null) ? mt_rand(0, $this->max_article_target) : $num;
+            $num = (is_null($num)) ? mt_rand(0, $this->max_article_target) : $num;
 
             switch ($num) {
                 case 1:
                 case 3:
                 case 8:
-                    $temp_other_message = sprintf('今日は寒いですよー。');
+                    $temp_other_message = sprintf('暖かくしてお出かけください。');
                     break;
                 case 2:
                 case 5:
@@ -738,7 +738,7 @@ EOM;
                     break;
             }
 
-            $temp_other_message = PHP_EOL . $temp_other_message . PHP_EOL;
+            $temp_other_message = PHP_EOL . $temp_other_message;
 
         }
 
@@ -780,7 +780,7 @@ EOM;
         $monday_message = '';
 
         // 曜日
-        $monday = (date('w', strtotime($date)) >= '0');
+        $monday = (date('w', strtotime($date)) == '0');
 
         // 月曜
         if ($monday) {

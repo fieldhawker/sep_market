@@ -17,10 +17,10 @@ class PostDailyInformation extends Command
 
 //    const SEP_GROUP_NAME = '(株)エス・イー・プロジェクト';
 //    const SEP_TOPIC_NAME = '気になるワードをメモるトピ';
-//    const SEP_GROUP_NAME = '検証用グループ';
-//    const SEP_TOPIC_NAME = '検証用トピック';
-    const SEP_GROUP_NAME = '自分用グループ';
-    const SEP_TOPIC_NAME = 'メモするトピ';
+    const SEP_GROUP_NAME = '検証用グループ';
+    const SEP_TOPIC_NAME = '検証用トピック';
+//    const SEP_GROUP_NAME = '自分用グループ';
+//    const SEP_TOPIC_NAME = 'メモするトピ';
 
     /**
      * The name and signature of the console command.
