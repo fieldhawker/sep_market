@@ -594,62 +594,27 @@ class CybozuLiveService
             $date = date('Y-m-d');
         }
 
-        // 月末までの日数
-        $diff_days    = (strtotime(date('Y-m-t')) - strtotime($date)) / (60 * 60 * 24);
-        $end_of_month = ($diff_days <= 5);
-
-        // 曜日
-        $monday = (date('w', strtotime($date)) == '0');
-
         // 掲示板のIDを取得
         $topic_id        = $this->getTopicId();
-        $comment_message = '';
+        $comment_message = 'おはようございます！' . PHP_EOL;
 
-
-        // 天気の情報を設定
-        $comment_message
-          = sprintf('%s%s%s%s', $comment_message, $this->createWeatherMessage(), PHP_EOL, PHP_EOL);
-
-
-        // 月曜
-        if ($monday) {
-
-            $border = self::BORDER;
-
-            $monday_message = <<< EOM
-☆月曜日です。週報の提出日になります。
-
-提出はこちらからお願いします。
-https://se-project.co.jp/cgi-bin/weeklyreport/index.cgi
-
-$border
-EOM;
-
-            $comment_message
-              = sprintf('%s%s%s%s', $comment_message, $monday_message, PHP_EOL, PHP_EOL);
+        // 天気のメッセージを取得
+        $weather_message = $this->createWeatherMessage();
+        if ($weather_message) {
+            $comment_message .= sprintf('%s%s', $weather_message, PHP_EOL);
         }
 
-        // 月末
-        if ($end_of_month) {
-
-            $year   = date('Y');
-            $month  = date('m', strtotime(date('Y-m-1') . '+1 month'));
-            $border = self::BORDER;
-
-            $eom_message = <<< EOM
-☆月末が近づいています。忘れずに勤務表を提出してください。
-
-【諸注意】勤務表のファイル名は 
-XXXX勤務表(SEP用)_氏名$year$month.xls
-XXXX：社員番号下桁
-の形式でアップしてください。
-
-$border
-EOM;
-            $comment_message
-                         = sprintf('%s%s%s%s', $comment_message, $eom_message, PHP_EOL, PHP_EOL);
+        // 月曜のメッセージを取得
+        $monday_message = $this->createMondayMessage($date);
+        if ($monday_message) {
+            $comment_message .= sprintf('%s%s', $monday_message, PHP_EOL);
         }
 
+        // 月末のメッセージを取得
+        $end_month_message = $this->createEndMonthMessage($date);
+        if ($end_month_message) {
+            $comment_message .= sprintf('%s%s', $end_month_message, PHP_EOL);
+        }
 
         // 投稿用XMLの生成
         $xmlString = $this->getXmlString($topic_id, $comment_message);
@@ -686,10 +651,8 @@ EOM;
      *
      * @return string
      */
-    public function getXmlString(
-      $topic_id,
-      $comment_message
-    ) {
+    public function getXmlString($topic_id, $comment_message)
+    {
 
         $xmlString = <<< EOM
 <?xml version="1.0" encoding="UTF-8"?>
@@ -727,20 +690,19 @@ EOM;
 
         $weather_message = sprintf('☆%sの%sの天気は「%s」です。',
           $weather_info['label'], $weather_info['pref'], $weather_info['telop']);
+        $weather_message = ($weather_message) ? $weather_message . PHP_EOL : '';
 
         $min = $weather_info['temp_min'];
         $max = $weather_info['temp_max'];
 
         $temp_message = $this->createTempMessage($max, $min);
+        $temp_message = ($temp_message) ? $temp_message . PHP_EOL : '';
 
         $temp_other_message = $this->createTempOtherMessage($max, $min);
+        $temp_other_message = ($temp_other_message) ? $temp_other_message . PHP_EOL : '';
 
-        $weather_message = <<< EOM
-おはようございます！$weather_message
-$temp_message
-$temp_other_message
-$border
-EOM;
+        $weather_message = $weather_message . $temp_message . $temp_other_message;
+        $weather_message = ($weather_message) ? $weather_message . PHP_EOL . $border : '';
 
         return $weather_message;
     }
@@ -805,5 +767,73 @@ EOM;
         }
 
         return $temp_message;
+    }
+
+    /**
+     * @param $date
+     *
+     * @return string
+     */
+    public function createMondayMessage($date)
+    {
+
+        $monday_message = '';
+
+        // 曜日
+        $monday = (date('w', strtotime($date)) >= '0');
+
+        // 月曜
+        if ($monday) {
+
+            $border = self::BORDER;
+
+            $monday_message = <<< EOM
+☆月曜日です。週報の提出日になります。
+
+提出はこちらからお願いします。
+https://se-project.co.jp/cgi-bin/weeklyreport/index.cgi
+
+$border
+EOM;
+
+        }
+
+        return $monday_message;
+    }
+
+    /**
+     * @param $date
+     *
+     * @return string
+     */
+    public function createEndMonthMessage($date)
+    {
+        $eom_message = '';
+
+        // 月末までの日数
+        $diff_days    = (strtotime(date('Y-m-t')) - strtotime($date)) / (60 * 60 * 24);
+        $end_of_month = ($diff_days <= 5);
+
+        // 月末
+        if ($end_of_month) {
+
+            $year   = date('Y');
+            $month  = date('m', strtotime(date('Y-m-1') . '+1 month'));
+            $border = self::BORDER;
+
+            $eom_message = <<< EOM
+☆月末が近づいています。忘れずに勤務表を提出してください。
+
+【諸注意】勤務表のファイル名は 
+XXXX勤務表(SEP用)_氏名$year$month.xls
+XXXX：社員番号下桁
+の形式でアップしてください。
+
+$border
+EOM;
+
+        }
+
+        return $eom_message;
     }
 }

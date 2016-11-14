@@ -17,8 +17,10 @@ class PostDailyInformation extends Command
 
 //    const SEP_GROUP_NAME = '(株)エス・イー・プロジェクト';
 //    const SEP_TOPIC_NAME = '気になるワードをメモるトピ';
-    const SEP_GROUP_NAME = '検証用グループ';
-    const SEP_TOPIC_NAME = '検証用トピック';
+//    const SEP_GROUP_NAME = '検証用グループ';
+//    const SEP_TOPIC_NAME = '検証用トピック';
+    const SEP_GROUP_NAME = '自分用グループ';
+    const SEP_TOPIC_NAME = 'メモするトピ';
 
     /**
      * The name and signature of the console command.
@@ -60,6 +62,11 @@ class PostDailyInformation extends Command
         $user = [
           'x_auth_username' => env('CYBOZULIVE_USER_NAME_DEV'),
           'x_auth_password' => env('CYBOZULIVE_PASSWORD_DEV'),
+        ];
+        
+        $user = [
+          'x_auth_username' => env('CYBOZULIVE_USER_NAME'),
+          'x_auth_password' => env('CYBOZULIVE_PASSWORD'),
         ];
 
         $this->cybozu->setUser($user);
