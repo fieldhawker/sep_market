@@ -12,7 +12,8 @@
         "pear/http_request2": "2.3.*",
         "pear/http_oauth": "0.3.*",
         "guzzlehttp/guzzle": "6.*",
-        "facebook/webdriver": "1.2.*"
+        "facebook/webdriver": "1.2.*",
+        "intervention/image": "^2.3"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

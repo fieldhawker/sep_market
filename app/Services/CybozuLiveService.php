@@ -4,6 +4,7 @@ namespace App\Services;
 use Log;
 use Util;
 use App\Services\LiveDoorService;
+use Intervention\Image\Facades\Image as Image;
 
 /**
  * Class CybozuLiveService
@@ -32,6 +33,7 @@ class CybozuLiveService
     private $get_rss_url            = "http://b.hatena.ne.jp/hotentry/it.rss?of=1&";
     private $user_agent             = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5)';
     private $max_article_target     = 10;
+    private $max_rand_num           = 10;
 //
 //    const SEP_GROUP_NAME_TEST = '自分用グループ';
 //    const SEP_TOPIC_NAME_TEST = 'メモするトピ';
@@ -105,7 +107,9 @@ class CybozuLiveService
         $this->createMessageForDaily();
 
         // デイリー情報をサイボウズに投稿
-        $this->postComment();
+        $image_path = public_path('images/chara/07_sakura.jpg');
+        $image_name = 's.jpg';
+        $this->postCommentWithImage($image_path, $image_name);
 
         Util::generateLogMessage('END');
 
@@ -412,6 +416,72 @@ class CybozuLiveService
         return true;
     }
 
+    /**
+     * サイボウズに投稿する
+     *
+     * @return bool
+     */
+    public function postCommentWithImage($image_path = null, $image_name = null)
+    {
+
+        Util::generateLogMessage('START');
+
+        if (empty($image_path) || empty($image_name)) {
+
+            Log::info('画像が指定されていません。');
+
+            return false;
+
+        }
+
+        // アクセストークンを取得
+        $access_token_info = $this->getAccessTokenInfo();
+        $xmlString         = $this->getMessage();
+        $consumer_key      = $this->cybozu["consumer_key"];
+        $consumer_secret   = $this->cybozu["consumer_secret"];
+        $finfo             = finfo_open(FILEINFO_MIME_TYPE);
+        $file_content_type = finfo_file($finfo, $image_path);
+        finfo_close($finfo);
+
+        try {
+
+            $request = new \HTTP_Request2();
+            $request->setConfig('ssl_verify_peer', false);
+            $request->setHeader('Content-Type: multipart/form-data; charset=utf-8');
+
+            $consumerRequest = new \HTTP_OAuth_Consumer_Request();
+            $consumerRequest->accept($request);
+            $consumerRequest->setBody($xmlString);
+
+            $oauth = new \HTTP_OAuth_Consumer($consumer_key,
+              $consumer_secret,
+              $access_token_info["oauth_token"],
+              $access_token_info["oauth_token_secret"]);
+            $oauth->accept($consumerRequest);
+
+            $request->addPostParameter("default", $xmlString);
+            $request->addUpload("file0", $image_path, $image_name, $file_content_type);
+
+            // 投稿
+            $req = $oauth->sendRequest($this->post_comment_url, array(), \HTTP_Request2::METHOD_POST);
+
+            // HTTPステータスチェック
+            if ($req->getStatus() !== 200) {
+                throw new \Exception($req->getBody(), $req->getStatus());
+            }
+
+        } catch (\HTTP_Request2_Exception $hr2e) {
+            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
+            exit;
+        } catch (\Exception $e) {
+            Log::info('Exception', ['e' => $e]);
+            exit;
+        }
+
+        Util::generateLogMessage('END');
+
+        return true;
+    }
 
     /**
      * 注目の記事を取得し、任意の記事を抽出する
@@ -596,7 +666,7 @@ class CybozuLiveService
 
         // 掲示板のIDを取得
         $topic_id        = $this->getTopicId();
-        $comment_message = 'おはようございます！' . PHP_EOL;
+        $comment_message = $this->getGreetingMessage() . PHP_EOL;
 
         // 天気のメッセージを取得
         $weather_message = $this->createWeatherMessage();
@@ -643,6 +713,53 @@ class CybozuLiveService
         $this->setMessage($xmlString);
 
         return true;
+    }
+
+    /**
+     * @param null $num
+     *
+     * @return string
+     */
+    public function getGreetingMessage($num = null)
+    {
+        $num = (is_null($num)) ? mt_rand(0, $this->max_rand_num) : $num;
+
+        switch ($num) {
+            case 1:
+            case 3:
+                $message = 'おはようございます。';
+                break;
+            case 2:
+            case 5:
+            case 7:
+                $message = 'よっ！';
+                break;
+            case 4:
+                $message = 'もーおーもーどれーなーいー♪';
+                // さくらのハートフルジェノサイド はっじまるよー
+                // せつなさ炸裂っ！
+                // それも幸せのひとつの形や
+                // ガンタンクって、むねきゅん？むねきゅんやね
+                // 
+                break;
+            case 6:
+                $message = 'な、なんですとー！？';
+                break;
+//            case 7:
+//                $message = '「みずぴーがクレジットカードの審査に落ちたんだって..」「ヘコむ話やね..」';
+//                break;
+            case 8:
+                $message = '「ガンタンクって、むねきゅん？」「むねきゅんやね」';
+                break;
+            case 9:
+                $message = '「あ～。俺はやる気ないからつっついても無駄やで」「バケモノだもんね」';
+                break;
+            default:
+                $message = sprintf('おはようございます。');
+                break;
+        }
+
+        return $message;
     }
 
     /**
@@ -720,7 +837,7 @@ EOM;
 
         if (!empty($max) && is_numeric($max) && $max <= self::COLD_CASE) {
 
-            $num = (is_null($num)) ? mt_rand(0, $this->max_article_target) : $num;
+            $num = (is_null($num)) ? mt_rand(0, $this->max_rand_num) : $num;
 
             switch ($num) {
                 case 1:
