@@ -4,6 +4,7 @@ namespace App\Services;
 use Log;
 use Util;
 use App\Services\LiveDoorService;
+use App\Services\RedmineService;
 use Intervention\Image\Facades\Image as Image;
 
 /**
@@ -15,6 +16,7 @@ class CybozuLiveService
     private $cybozu;
     private $user;
     private $livedoor;
+    private $redmine;
 
     private $access_token_info;
     private $group_id;
@@ -38,13 +40,13 @@ class CybozuLiveService
 //    const SEP_GROUP_NAME_TEST = '自分用グループ';
 //    const SEP_TOPIC_NAME_TEST = 'メモするトピ';
     const COLD_CASE = 20;
-    const BORDER    = '-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-';
+    const BORDER    = '-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-';
 
 
     /**
      * CybozuLiveService constructor.
      */
-    public function __construct()
+    public function __construct(LiveDoorService $livedoor = null, RedmineService $redmine = null)
     {
 
         Util::generateLogMessage('START');
@@ -59,7 +61,8 @@ class CybozuLiveService
 //          'x_auth_password' => env('CYBOZULIVE_PASSWORD'),
 //        ];
 
-        $this->livedoor = New LiveDoorService;
+        $this->livedoor = $livedoor ?: new LiveDoorService();
+        $this->redmine  = $redmine ?: new RedmineService();
 
         Util::generateLogMessage('END');
     }
@@ -102,6 +105,9 @@ class CybozuLiveService
 
         // 天気を取得
         $this->livedoor->setWeatherData();
+
+        // 昨日以降に更新されたチケットを取得
+        $this->redmine->setTicketData();
 
         // POSTする文字列を生成
         $this->createMessageForDaily();
@@ -674,10 +680,16 @@ class CybozuLiveService
             $comment_message .= sprintf('%s%s', $weather_message, PHP_EOL);
         }
 
-        // 月曜のメッセージを取得
-        $monday_message = $this->createMondayMessage($date);
-        if ($monday_message) {
-            $comment_message .= sprintf('%s%s', $monday_message, PHP_EOL);
+        // チケットのメッセージを取得
+        $ticket_message = $this->createTicketMessage();
+        if ($ticket_message) {
+            $comment_message .= sprintf('%s%s', $ticket_message, PHP_EOL);
+        }
+
+        // 週報のメッセージを取得
+        $weekly_report_message = $this->createWeeklyReportMessage($date);
+        if ($weekly_report_message) {
+            $comment_message .= sprintf('%s%s', $weekly_report_message, PHP_EOL);
         }
 
         // 月末のメッセージを取得
@@ -732,7 +744,7 @@ class CybozuLiveService
             case 2:
             case 5:
             case 7:
-                $message = 'よっ！';
+                $message = 'よっ。';
                 break;
             case 4:
                 $message = 'もーおーもーどれーなーいー♪';
@@ -891,21 +903,21 @@ EOM;
      *
      * @return string
      */
-    public function createMondayMessage($date)
+    public function createWeeklyReportMessage($date)
     {
 
-        $monday_message = '';
+        $weekly_report_message = '';
 
-        // 曜日
-        $monday = (date('w', strtotime($date)) == '0');
+        // 提出日判定
+        $week    = date('w', strtotime($date));
+        $present = ($week <= 1 || 5 <= $week);
 
-        // 月曜
-        if ($monday) {
+        if ($present) {
 
             $border = self::BORDER;
 
-            $monday_message = <<< EOM
-☆月曜日です。週報の提出日になります。
+            $weekly_report_message = <<< EOM
+☆週報の提出日が近づいています。
 
 提出はこちらからお願いします。
 https://se-project.co.jp/cgi-bin/weeklyreport/index.cgi
@@ -915,7 +927,7 @@ EOM;
 
         }
 
-        return $monday_message;
+        return $weekly_report_message;
     }
 
     /**
@@ -952,5 +964,29 @@ EOM;
         }
 
         return $eom_message;
+    }
+
+
+    /**
+     * @return string
+     */
+    public function createTicketMessage()
+    {
+        $ticket_info = $this->redmine->getTicketInfo();
+        $border      = self::BORDER;
+
+        if (count($ticket_info) <= 0) {
+            return '';
+        }
+
+        $ticket_message = sprintf('☆昨日更新されたチケットはこちらです。%s%s', PHP_EOL, PHP_EOL);
+
+        foreach ($ticket_info as $ticket) {
+            $ticket_message .= sprintf('#%s %s - %s%s', $ticket['id'], $ticket['project'], $ticket['subject'], PHP_EOL);
+        }
+
+        $ticket_message = $ticket_message . PHP_EOL . $border;
+
+        return $ticket_message;
     }
 }

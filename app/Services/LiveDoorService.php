@@ -4,7 +4,7 @@ namespace App\Services;
 use Log;
 use Util;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 
 /**
  * Class LiveDoorService
@@ -12,8 +12,8 @@ use GuzzleHttp\Exception\TransferException;
 class LiveDoorService
 {
 
-    private $client;
     private $weather_info;
+    private $client;
 
     const WEATHER_PREF         = '130010';  // 東京
     const GET_WEATHER_INFO_URL = 'http://weather.livedoor.com/forecast/webservice/json/v1';
@@ -22,11 +22,12 @@ class LiveDoorService
      * LiveDoorService constructor.
      *
      */
-    public function __construct()
+    public function __construct(GuzzleClientInterface $client = null)
     {
 
         Util::generateLogMessage('START');
 
+        $this->client = $client ?: new Client();
 
         Util::generateLogMessage('END');
 
@@ -34,7 +35,7 @@ class LiveDoorService
 
 
     /**
-     * 興味深い記事をサイボウズLIVEに投稿する
+     * 天気情報をアクセサに設定
      *
      * @return bool
      */
@@ -44,11 +45,13 @@ class LiveDoorService
         Util::generateLogMessage('START');
 
         // 天気を取得
-        $result = $this->requestWeather();
+        $response_weather = $this->requestWeather();
 
-        if (!$result) {
-            Log::info("天気の取得に失敗しました");
-        }
+        // 必要な情報を抽出
+        $weather_info = $this->createWeatherInfo($response_weather);
+
+        // アクセサに設定
+        $this->setWeatherInfo($weather_info);
 
         Util::generateLogMessage('END');
 
@@ -56,11 +59,10 @@ class LiveDoorService
 
     }
 
-
     /**
      * 天気情報を取得します
      *
-     * @return bool
+     * @return mixed
      * @throws \Exception
      */
     public function requestWeather()
@@ -68,25 +70,51 @@ class LiveDoorService
 
         Util::generateLogMessage('START');
 
-        try {
+        $res = $this->client->get(self::GET_WEATHER_INFO_URL, [
+          'query' => [
+            'city' => self::WEATHER_PREF,
+          ],
+        ]);
 
-            $client = new Client();
-            $res    = $client->get(self::GET_WEATHER_INFO_URL, [
-              'query' => [
-                'city' => self::WEATHER_PREF,
-              ],
-            ]);
-
-            if ($res->getStatusCode() !== 200) {
-                throw new \Exception($res->getBody(), $res->getStatusCode());
-            }
-
-        } catch (\TransferException $e) {
-            Log::info('Exception', ['e' => $e]);
-            exit;
+        if ($res->getStatusCode() !== 200) {
+            throw new \Exception($res->getBody(), $res->getStatusCode());
         }
 
         $weather = json_decode($res->getBody(), true);
+
+        Log::info("取得した天気情報", $weather);
+
+        Util::generateLogMessage('END');
+
+        return $weather;
+
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getWeatherInfo()
+    {
+        return $this->weather_info;
+    }
+
+    /**
+     * @param mixed $weather_info
+     */
+    public function setWeatherInfo($weather_info)
+    {
+        $this->weather_info = $weather_info;
+    }
+
+    /**
+     * @param $weather
+     *
+     * @return mixed
+     */
+    public function createWeatherInfo($weather)
+    {
+
+        Util::generateLogMessage('START');
 
         $weather_info['pref']  = $weather['location']['prefecture'];
         $weather_info['label'] = $weather['forecasts'][0]['dateLabel'];
@@ -105,29 +133,11 @@ class LiveDoorService
         $weather_info['temp_min'] = ($is_min) ? $weather['forecasts'][0]['temperature']['min']['celsius'] : null;
         $weather_info['temp_max'] = ($is_max) ? $weather['forecasts'][0]['temperature']['max']['celsius'] : null;
 
-        Log::info("取得した天気情報", $weather_info);
-
-        $this->setWeatherInfo($weather_info);
+        Log::info("出力に使用する天気情報", $weather_info);
 
         Util::generateLogMessage('END');
 
-        return true;
+        return $weather_info;
 
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getWeatherInfo()
-    {
-        return $this->weather_info;
-    }
-
-    /**
-     * @param mixed $weather_info
-     */
-    public function setWeatherInfo($weather_info)
-    {
-        $this->weather_info = $weather_info;
     }
 }
