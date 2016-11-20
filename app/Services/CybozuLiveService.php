@@ -3,6 +3,7 @@ namespace App\Services;
 
 use Log;
 use Util;
+use Config;
 use App\Services\LiveDoorService;
 use App\Services\RedmineService;
 use Intervention\Image\Facades\Image as Image;
@@ -23,6 +24,7 @@ class CybozuLiveService
     private $topic_id;
     private $article;
     private $message;
+    private $gwschedule;
 
     private $group_name;
     private $topic_name;
@@ -32,19 +34,21 @@ class CybozuLiveService
     private $get_group_id_url       = "https://api.cybozulive.com/api/group/V2";
     private $get_topic_id_url       = "https://api.cybozulive.com/api/board/V2";
     private $post_comment_url       = "https://api.cybozulive.com/api/comment/V2";
+    private $get_gwschedule_url     = "https://api.cybozulive.com/api/gwSchedule/V2";
     private $get_rss_url            = "http://b.hatena.ne.jp/hotentry/it.rss?of=1&";
     private $user_agent             = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5)';
-    private $max_article_target     = 10;
-    private $max_rand_num           = 10;
-//
-//    const SEP_GROUP_NAME_TEST = '自分用グループ';
-//    const SEP_TOPIC_NAME_TEST = 'メモするトピ';
-    const COLD_CASE = 20;
-    const BORDER    = '-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-';
+
+    const ARTICLE_NUM = 10;
+    const COLD_CASE   = 20;
+    const HOT_CASE    = 30;
+    const BORDER      = '-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-';
 
 
     /**
      * CybozuLiveService constructor.
+     *
+     * @param \App\Services\LiveDoorService|null $livedoor
+     * @param \App\Services\RedmineService|null  $redmine
      */
     public function __construct(LiveDoorService $livedoor = null, RedmineService $redmine = null)
     {
@@ -56,33 +60,11 @@ class CybozuLiveService
           'consumer_secret' => env('CYBOZULIVE_CONSUMER_SECRET'),
         ];
 
-//        $this->user = [
-//          'x_auth_username' => env('CYBOZULIVE_USER_NAME'),
-//          'x_auth_password' => env('CYBOZULIVE_PASSWORD'),
-//        ];
-
         $this->livedoor = $livedoor ?: new LiveDoorService();
         $this->redmine  = $redmine ?: new RedmineService();
 
         Util::generateLogMessage('END');
     }
-
-    /**
-     * @return array
-     */
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    /**
-     * @param array $user
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
-    }
-
 
     /**
      * デイリー情報をサイボウズに投稿する
@@ -94,28 +76,50 @@ class CybozuLiveService
 
         Util::generateLogMessage('START');
 
-        // アクセストークンを取得
-        $this->requestAccessToken();
+        try {
 
-        // グループIDを取得
-        $this->requestGroupId();
+            // アクセストークンを取得
+            $this->requestAccessToken();
 
-        // トピックIDを取得
-        $this->requestTopicId();
+            // グループIDを取得
+            $this->requestGroupId();
 
-        // 天気を取得
-        $this->livedoor->setWeatherData();
+            // トピックIDを取得
+            $this->requestTopicId();
 
-        // 昨日以降に更新されたチケットを取得
-        $this->redmine->setTicketData();
+            // サイボウズのスケジュールを取得
+            $this->setGwScheduleData();
 
-        // POSTする文字列を生成
-        $this->createMessageForDaily();
+            // 天気を取得
+            $this->livedoor->setWeatherData();
 
-        // デイリー情報をサイボウズに投稿
-        $image_path = public_path('images/chara/07_sakura.jpg');
-        $image_name = 's.jpg';
-        $this->postCommentWithImage($image_path, $image_name);
+            // 昨日以降に更新されたチケットを取得
+            $this->redmine->setTicketData();
+
+            // POSTする文字列を生成
+            $this->createMessageForDaily();
+
+            // デイリー情報をサイボウズに投稿
+            $image_path = public_path('images/chara/07_sakura.jpg');
+            $image_name = 's.jpg';
+            $this->postCommentWithImage($image_path, $image_name);
+
+        } catch (HTTP_OAuth_Exception $hoe) {
+
+            Log::info('HTTP_OAuth_Exception', ['hoe' => $hoe]);
+            exit;
+
+        } catch (\HTTP_Request2_Exception $hr2e) {
+
+            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
+            exit;
+
+        } catch (\Exception $e) {
+
+            Log::info('Exception', ['e' => $e]);
+            exit;
+
+        }
 
         Util::generateLogMessage('END');
 
@@ -134,23 +138,42 @@ class CybozuLiveService
 
         Util::generateLogMessage('START');
 
-        // アクセストークンを取得
-        $this->requestAccessToken();
+        try {
 
-        // グループIDを取得
-        $this->requestGroupId();
+            // アクセストークンを取得
+            $this->requestAccessToken();
 
-        // トピックIDを取得
-        $this->requestTopicId();
+            // グループIDを取得
+            $this->requestGroupId();
 
-        // 興味深い記事を取得
-        $this->getInterestingArticle();
+            // トピックIDを取得
+            $this->requestTopicId();
 
-        // POSTする文字列を生成
-        $this->createMessageForInteresting();
+            // 興味深い記事を取得
+            $this->getInterestingArticle();
 
-        // 興味深い記事をサイボウズに投稿
-        $this->postComment();
+            // POSTする文字列を生成
+            $this->createMessageForInteresting();
+
+            // 興味深い記事をサイボウズに投稿
+            $this->postComment();
+
+        } catch (HTTP_OAuth_Exception $hoe) {
+
+            Log::info('HTTP_OAuth_Exception', ['hoe' => $hoe]);
+            exit;
+
+        } catch (\HTTP_Request2_Exception $hr2e) {
+
+            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
+            exit;
+
+        } catch (\Exception $e) {
+
+            Log::info('Exception', ['e' => $e]);
+            exit;
+
+        }
 
         Util::generateLogMessage('END');
 
@@ -158,10 +181,14 @@ class CybozuLiveService
 
     }
 
+
     /**
      * アクセストークンを取得する
      *
      * @return bool
+     * @throws \Exception
+     * @throws \HTTP_OAuth_Exception
+     * @throws \HTTP_Request2_LogicException
      */
     public function requestAccessToken()
     {
@@ -183,34 +210,25 @@ class CybozuLiveService
         // アクセストークンの取得
         //-----------------------------
 
-        try {
-            $request = new \HTTP_Request2();
-            $request->setConfig('ssl_verify_peer', false);
+        $request = new \HTTP_Request2();
+        $request->setConfig('ssl_verify_peer', false);
 
-            $consumerRequest = new \HTTP_OAuth_Consumer_Request();
-            $consumerRequest->accept($request);
+        $consumerRequest = new \HTTP_OAuth_Consumer_Request();
+        $consumerRequest->accept($request);
 
-            $oauth = new \HTTP_OAuth_Consumer($consumer_key, $consumer_secret);
-            $oauth->accept($consumerRequest);
+        $oauth = new \HTTP_OAuth_Consumer($consumer_key, $consumer_secret);
+        $oauth->accept($consumerRequest);
 
-            // リクエスト送信
-            $response = $oauth->sendRequest($xauth_access_token_url, $params, \HTTP_Request2::METHOD_POST);
+        // リクエスト送信
+        $response = $oauth->sendRequest($xauth_access_token_url, $params, \HTTP_Request2::METHOD_POST);
 
-            // HTTPステータスチェック
-            if ($response->getStatus() !== 200) {
-                throw new \Exception($response->getBody(), $response->getStatus());
-            }
-
-            // 解析
-            parse_str($response->getBody(), $access_token_info);
-
-        } catch (\HTTP_Request2_Exception $hr2e) {
-            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
-            exit;
-        } catch (\Exception $e) {
-            Log::info('Exception', ['e' => $e]);
-            exit;
+        // HTTPステータスチェック
+        if ($response->getStatus() !== 200) {
+            throw new \Exception($response->getBody(), $response->getStatus());
         }
+
+        // 解析
+        parse_str($response->getBody(), $access_token_info);
 
         Log::info("取得したアクセストークン", $access_token_info);
 
@@ -222,11 +240,13 @@ class CybozuLiveService
 
     }
 
-
     /**
      * グループIDを取得する
      *
      * @return bool
+     * @throws \Exception
+     * @throws \HTTP_OAuth_Exception
+     * @throws \HTTP_Request2_LogicException
      */
     public function requestGroupId()
     {
@@ -242,50 +262,41 @@ class CybozuLiveService
         $consumer_key    = $this->cybozu["consumer_key"];
         $consumer_secret = $this->cybozu["consumer_secret"];
 
-        try {
-            $request = new \HTTP_Request2();
-            $request->setConfig('ssl_verify_peer', false);
+        $request = new \HTTP_Request2();
+        $request->setConfig('ssl_verify_peer', false);
 
-            $consumerRequest = new \HTTP_OAuth_Consumer_Request();
-            $consumerRequest->accept($request);
+        $consumerRequest = new \HTTP_OAuth_Consumer_Request();
+        $consumerRequest->accept($request);
 
-            $oauth = new \HTTP_OAuth_Consumer($consumer_key,
-              $consumer_secret,
-              $access_token_info["oauth_token"],
-              $access_token_info["oauth_token_secret"]);
-            $oauth->accept($consumerRequest);
+        $oauth = new \HTTP_OAuth_Consumer($consumer_key,
+          $consumer_secret,
+          $access_token_info["oauth_token"],
+          $access_token_info["oauth_token_secret"]);
+        $oauth->accept($consumerRequest);
 
-            // グループの取得
-            $req = $oauth->sendRequest($this->get_group_id_url, array(), 'GET');
+        // グループの取得
+        $req = $oauth->sendRequest($this->get_group_id_url, array(), 'GET');
 
-            // HTTPステータスチェック
-            if ($req->getStatus() !== 200) {
-                throw new \Exception($req->getBody(), $req->getStatus());
-            }
-
-            // 解析
-            $list = simplexml_load_string($req->getBody());
-            foreach ($list->entry as $entry) {
-
-                // 指定したグループ名のみ
-                if ($entry->title == $group_name) {
-
-                    // "GROUP,1:1"の形式で取得される
-                    $group = explode(",", $entry->id);
-                    break;
-                }
-            }
-
-            // "1:1"の部分のみ使う
-            $group_id = $group[1];
-
-        } catch (\HTTP_Request2_Exception $hr2e) {
-            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
-            exit;
-        } catch (\Exception $e) {
-            Log::info('Exception', ['e' => $e]);
-            exit;
+        // HTTPステータスチェック
+        if ($req->getStatus() !== 200) {
+            throw new \Exception($req->getBody(), $req->getStatus());
         }
+
+        // 解析
+        $list = simplexml_load_string($req->getBody());
+        foreach ($list->entry as $entry) {
+
+            // 指定したグループ名のみ
+            if ($entry->title == $group_name) {
+
+                // "GROUP,1:1"の形式で取得される
+                $group = explode(",", $entry->id);
+                break;
+            }
+        }
+
+        // "1:1"の部分のみ使う
+        $group_id = $group[1];
 
         Log::info("取得したグループのID", ["group_id" => $group_id]);
 
@@ -296,11 +307,13 @@ class CybozuLiveService
         return true;
     }
 
-
     /**
      * 掲示板のIDを取得する
      *
      * @return bool
+     * @throws \Exception
+     * @throws \HTTP_OAuth_Exception
+     * @throws \HTTP_Request2_LogicException
      */
     public function requestTopicId()
     {
@@ -318,44 +331,36 @@ class CybozuLiveService
         // 投稿したい掲示板のトピック名
         $topic_name = $this->topic_name;
 
-        try {
-            $request = new \HTTP_Request2();
-            $request->setConfig('ssl_verify_peer', false);
+        $request = new \HTTP_Request2();
+        $request->setConfig('ssl_verify_peer', false);
 
-            $consumerRequest = new \HTTP_OAuth_Consumer_Request();
-            $consumerRequest->accept($request);
+        $consumerRequest = new \HTTP_OAuth_Consumer_Request();
+        $consumerRequest->accept($request);
 
-            $oauth = new \HTTP_OAuth_Consumer($consumer_key,
-              $consumer_secret,
-              $access_token_info["oauth_token"],
-              $access_token_info["oauth_token_secret"]);
-            $oauth->accept($consumerRequest);
+        $oauth = new \HTTP_OAuth_Consumer($consumer_key,
+          $consumer_secret,
+          $access_token_info["oauth_token"],
+          $access_token_info["oauth_token_secret"]);
+        $oauth->accept($consumerRequest);
 
-            // 掲示板の取得
-            $req = $oauth->sendRequest($this->get_topic_id_url, array('group' => $group_id), 'GET');
+        // 掲示板の取得
+        $req = $oauth->sendRequest($this->get_topic_id_url, array('group' => $group_id), 'GET');
 
-            // HTTPステータスチェック
-            if ($req->getStatus() !== 200) {
-                throw new \Exception($req->getBody(), $req->getStatus());
+        // HTTPステータスチェック
+        if ($req->getStatus() !== 200) {
+            throw new \Exception($req->getBody(), $req->getStatus());
+        }
+
+        // 解析
+        $list = simplexml_load_string($req->getBody());
+        foreach ($list->entry as $entry) {
+
+            // "GROUP,1:1,BOARD,1:1"の形式で取得される
+            if ($entry->title == $topic_name) {
+                $topic_id = $entry->id;
+                break;
             }
 
-            // 解析
-            $list = simplexml_load_string($req->getBody());
-            foreach ($list->entry as $entry) {
-
-                // "GROUP,1:1,BOARD,1:1"の形式で取得される
-                if ($entry->title == $topic_name) {
-                    $topic_id = $entry->id;
-                    break;
-                }
-            }
-
-        } catch (\HTTP_Request2_Exception $hr2e) {
-            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
-            exit;
-        } catch (\Exception $e) {
-            Log::info('Exception', ['e' => $e]);
-            exit;
         }
 
         $topic_id = (string)$topic_id;
@@ -370,9 +375,34 @@ class CybozuLiveService
     }
 
     /**
+     * @return bool
+     * @throws \Exception
+     */
+    public function setGwScheduleData()
+    {
+        Util::generateLogMessage('START');
+
+        // グループスケジュールを取得
+        $response_gwschedule = $this->requestGwScheduleInfo();
+
+        // 必要な項目を抽出
+        $gwschedule_info = $this->createGwscheduleInfo($response_gwschedule);
+
+        // アクセサに設定
+        $this->setGwscheduleInfo($gwschedule_info);
+
+        Util::generateLogMessage('END');
+
+        return true;
+    }
+
+    /**
      * サイボウズに投稿する
      *
      * @return bool
+     * @throws \Exception
+     * @throws \HTTP_OAuth_Exception
+     * @throws \HTTP_Request2_LogicException
      */
     public function postComment()
     {
@@ -385,36 +415,26 @@ class CybozuLiveService
         $consumer_key      = $this->cybozu["consumer_key"];
         $consumer_secret   = $this->cybozu["consumer_secret"];
 
-        try {
+        $request = new \HTTP_Request2();
+        $request->setConfig('ssl_verify_peer', false);
+        $request->setHeader('Content-Type: application/atom+xml; charset=utf-8');
 
-            $request = new \HTTP_Request2();
-            $request->setConfig('ssl_verify_peer', false);
-            $request->setHeader('Content-Type: application/atom+xml; charset=utf-8');
+        $consumerRequest = new \HTTP_OAuth_Consumer_Request();
+        $consumerRequest->accept($request);
+        $consumerRequest->setBody($xmlString);
 
-            $consumerRequest = new \HTTP_OAuth_Consumer_Request();
-            $consumerRequest->accept($request);
-            $consumerRequest->setBody($xmlString);
+        $oauth = new \HTTP_OAuth_Consumer($consumer_key,
+          $consumer_secret,
+          $access_token_info["oauth_token"],
+          $access_token_info["oauth_token_secret"]);
+        $oauth->accept($consumerRequest);
 
-            $oauth = new \HTTP_OAuth_Consumer($consumer_key,
-              $consumer_secret,
-              $access_token_info["oauth_token"],
-              $access_token_info["oauth_token_secret"]);
-            $oauth->accept($consumerRequest);
+        // 投稿
+        $req = $oauth->sendRequest($this->post_comment_url, array(), \HTTP_Request2::METHOD_POST);
 
-            // 投稿
-            $req = $oauth->sendRequest($this->post_comment_url, array(), \HTTP_Request2::METHOD_POST);
-
-            // HTTPステータスチェック
-            if ($req->getStatus() !== 200) {
-                throw new \Exception($req->getBody(), $req->getStatus());
-            }
-
-        } catch (\HTTP_Request2_Exception $hr2e) {
-            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
-            exit;
-        } catch (\Exception $e) {
-            Log::info('Exception', ['e' => $e]);
-            exit;
+        // HTTPステータスチェック
+        if ($req->getStatus() !== 200) {
+            throw new \Exception($req->getBody(), $req->getStatus());
         }
 
         Util::generateLogMessage('END');
@@ -422,10 +442,17 @@ class CybozuLiveService
         return true;
     }
 
+
     /**
      * サイボウズに投稿する
      *
+     * @param null $image_path
+     * @param null $image_name
+     *
      * @return bool
+     * @throws \Exception
+     * @throws \HTTP_OAuth_Exception
+     * @throws \HTTP_Request2_LogicException
      */
     public function postCommentWithImage($image_path = null, $image_name = null)
     {
@@ -445,43 +472,34 @@ class CybozuLiveService
         $xmlString         = $this->getMessage();
         $consumer_key      = $this->cybozu["consumer_key"];
         $consumer_secret   = $this->cybozu["consumer_secret"];
+
         $finfo             = finfo_open(FILEINFO_MIME_TYPE);
         $file_content_type = finfo_file($finfo, $image_path);
         finfo_close($finfo);
 
-        try {
+        $request = new \HTTP_Request2();
+        $request->setConfig('ssl_verify_peer', false);
+        $request->setHeader('Content-Type: multipart/form-data; charset=utf-8');
 
-            $request = new \HTTP_Request2();
-            $request->setConfig('ssl_verify_peer', false);
-            $request->setHeader('Content-Type: multipart/form-data; charset=utf-8');
+        $consumerRequest = new \HTTP_OAuth_Consumer_Request();
+        $consumerRequest->accept($request);
+        $consumerRequest->setBody($xmlString);
 
-            $consumerRequest = new \HTTP_OAuth_Consumer_Request();
-            $consumerRequest->accept($request);
-            $consumerRequest->setBody($xmlString);
+        $oauth = new \HTTP_OAuth_Consumer($consumer_key,
+          $consumer_secret,
+          $access_token_info["oauth_token"],
+          $access_token_info["oauth_token_secret"]);
+        $oauth->accept($consumerRequest);
 
-            $oauth = new \HTTP_OAuth_Consumer($consumer_key,
-              $consumer_secret,
-              $access_token_info["oauth_token"],
-              $access_token_info["oauth_token_secret"]);
-            $oauth->accept($consumerRequest);
+        $request->addPostParameter("default", $xmlString);
+        $request->addUpload("file0", $image_path, $image_name, $file_content_type);
 
-            $request->addPostParameter("default", $xmlString);
-            $request->addUpload("file0", $image_path, $image_name, $file_content_type);
+        // 投稿
+        $req = $oauth->sendRequest($this->post_comment_url, array(), \HTTP_Request2::METHOD_POST);
 
-            // 投稿
-            $req = $oauth->sendRequest($this->post_comment_url, array(), \HTTP_Request2::METHOD_POST);
-
-            // HTTPステータスチェック
-            if ($req->getStatus() !== 200) {
-                throw new \Exception($req->getBody(), $req->getStatus());
-            }
-
-        } catch (\HTTP_Request2_Exception $hr2e) {
-            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
-            exit;
-        } catch (\Exception $e) {
-            Log::info('Exception', ['e' => $e]);
-            exit;
+        // HTTPステータスチェック
+        if ($req->getStatus() !== 200) {
+            throw new \Exception($req->getBody(), $req->getStatus());
         }
 
         Util::generateLogMessage('END');
@@ -493,6 +511,8 @@ class CybozuLiveService
      * 注目の記事を取得し、任意の記事を抽出する
      *
      * @return bool
+     * @throws \Exception
+     * @throws \HTTP_Request2_LogicException
      */
     public function getInterestingArticle()
     {
@@ -500,38 +520,28 @@ class CybozuLiveService
 
         $rss = $this->get_rss_url . time();
 
-        try {
+        $request = new \HTTP_Request2();
+        $request->setConfig('ssl_verify_peer', false);
+        $request->setMethod(\HTTP_Request2::METHOD_GET);
+        $request->setHeader(array(
+          'Referer'    => $rss,
+          'User-Agent' => $this->user_agent,
+          'Connection' => 'close'
+        ));
 
-            $request = new \HTTP_Request2();
-            $request->setConfig('ssl_verify_peer', false);
-            $request->setMethod(\HTTP_Request2::METHOD_GET);
-            $request->setHeader(array(
-              'Referer'    => $rss,
-              'User-Agent' => $this->user_agent,
-              'Connection' => 'close'
-            ));
+        $response = $request->setUrl($rss)->send();
 
-            $response = $request->setUrl($rss)->send();
-
-            // HTTPステータスチェック
-            if ($response->getStatus() !== 200) {
-                throw new \Exception($response->getBody(), $response->getStatus());
-            }
-
-            $str      = $response->getBody();
-            $xml      = simplexml_load_string($str);
-            $json     = json_encode($xml);
-            $articles = json_decode($json, true);
-
-        } catch (\HTTP_Request2_Exception $hr2e) {
-            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
-            exit;
-        } catch (\Exception $e) {
-            Log::info('Exception', ['e' => $e]);
-            exit;
+        // HTTPステータスチェック
+        if ($response->getStatus() !== 200) {
+            throw new \Exception($response->getBody(), $response->getStatus());
         }
 
-        $num = mt_rand(0, $this->max_article_target);
+        $str      = $response->getBody();
+        $xml      = simplexml_load_string($str);
+        $json     = json_encode($xml);
+        $articles = json_decode($json, true);
+
+        $num = mt_rand(0, self::ARTICLE_NUM);
 
         $article["title"] = $articles["item"][$num]["title"];
         $article["link"]  = $articles["item"][$num]["link"];
@@ -546,119 +556,6 @@ class CybozuLiveService
 
     }
 
-    /**
-     * @return string
-     */
-    public function getGroupName()
-    {
-        return $this->group_name;
-    }
-
-    /**
-     * @param string $group_name
-     */
-    public function setGroupName($group_name)
-    {
-        $this->group_name = $group_name;
-    }
-
-    /**
-     * @return string
-     */
-    public function getTopicName()
-    {
-        return $this->topic_name;
-    }
-
-    /**
-     * @param string $topic_name
-     */
-    public function setTopicName($topic_name)
-    {
-        $this->topic_name = $topic_name;
-    }
-
-    /**
-     * @param $access_token_info
-     */
-    public function setAccessTokenInfo($access_token_info)
-    {
-        $this->access_token_info = $access_token_info;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getAccessTokenInfo()
-    {
-        return $this->access_token_info;
-    }
-
-    /**
-     * @param $group_id
-     */
-    public function setGroupId($group_id)
-    {
-        $this->group_id = $group_id;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getGroupId()
-    {
-        return $this->group_id;
-    }
-
-    /**
-     * @param $topic_id
-     */
-    public function setTopicId($topic_id)
-    {
-        $this->topic_id = $topic_id;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTopicId()
-    {
-        return $this->topic_id;
-    }
-
-
-    /**
-     * @param $article
-     */
-    public function setArticle($article)
-    {
-        $this->article = $article;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getArticle()
-    {
-        return $this->article;
-    }
-
-
-    /**
-     * @return mixed
-     */
-    public function getMessage()
-    {
-        return $this->message;
-    }
-
-    /**
-     * @param mixed $message
-     */
-    public function setMessage($message)
-    {
-        $this->message = $message;
-    }
 
     /**
      * @internal param mixed $message
@@ -684,6 +581,12 @@ class CybozuLiveService
         $ticket_message = $this->createTicketMessage();
         if ($ticket_message) {
             $comment_message .= sprintf('%s%s', $ticket_message, PHP_EOL);
+        }
+
+        // スケジュールのメッセージを取得
+        $gwschedule_message = $this->createGwScheduleMessage();
+        if ($gwschedule_message) {
+            $comment_message .= sprintf('%s%s', $gwschedule_message, PHP_EOL);
         }
 
         // 週報のメッセージを取得
@@ -734,42 +637,9 @@ class CybozuLiveService
      */
     public function getGreetingMessage($num = null)
     {
-        $num = (is_null($num)) ? mt_rand(0, $this->max_rand_num) : $num;
-
-        switch ($num) {
-            case 1:
-            case 3:
-                $message = 'おはようございます。';
-                break;
-            case 2:
-            case 5:
-            case 7:
-                $message = 'よっ。';
-                break;
-            case 4:
-                $message = 'もーおーもーどれーなーいー♪';
-                // さくらのハートフルジェノサイド はっじまるよー
-                // せつなさ炸裂っ！
-                // それも幸せのひとつの形や
-                // ガンタンクって、むねきゅん？むねきゅんやね
-                // 
-                break;
-            case 6:
-                $message = 'な、なんですとー！？';
-                break;
-//            case 7:
-//                $message = '「みずぴーがクレジットカードの審査に落ちたんだって..」「ヘコむ話やね..」';
-//                break;
-            case 8:
-                $message = '「ガンタンクって、むねきゅん？」「むねきゅんやね」';
-                break;
-            case 9:
-                $message = '「あ～。俺はやる気ないからつっついても無駄やで」「バケモノだもんね」';
-                break;
-            default:
-                $message = sprintf('おはようございます。');
-                break;
-        }
+        $messages = Config::get('nini.hello_message');
+        $num      = (is_null($num)) ? mt_rand(0, count($messages)) : $num;
+        $message  = $messages[$num] . PHP_EOL . '[file:1]';
 
         return $message;
     }
@@ -845,33 +715,25 @@ EOM;
      */
     public function createTempOtherMessage($max, $min, $num = null)
     {
-        $temp_other_message = '';
+        $message = '';
 
         if (!empty($max) && is_numeric($max) && $max <= self::COLD_CASE) {
 
-            $num = (is_null($num)) ? mt_rand(0, $this->max_rand_num) : $num;
+            $messages = Config::get('nini.cold_message');
+            $num      = (is_null($num)) ? mt_rand(0, count($messages)) : $num;
+            $message  = sprintf('%s%s%s', PHP_EOL, $messages[$num], PHP_EOL);
 
-            switch ($num) {
-                case 1:
-                case 3:
-                case 8:
-                    $temp_other_message = sprintf('暖かくしてお出かけください。');
-                    break;
-                case 2:
-                case 5:
-                case 7:
-                    $temp_other_message = sprintf('風邪に注意してくださいね。');
-                    break;
-                default:
-                    $temp_other_message = sprintf('温かい服装で出掛けてくださいね。');
-                    break;
+        } else {
+            if (!empty($max) && is_numeric($max) && self::HOT_CASE <= $max) {
+
+                $messages = Config::get('nini.hot_message');
+                $num      = (is_null($num)) ? mt_rand(0, count($messages)) : $num;
+                $message  = sprintf('%s%s%s', PHP_EOL, $messages[$num], PHP_EOL);
+
             }
-
-            $temp_other_message = PHP_EOL . $temp_other_message;
-
         }
 
-        return $temp_other_message;
+        return $message;
     }
 
 
@@ -989,4 +851,308 @@ EOM;
 
         return $ticket_message;
     }
+
+    /**
+     * @return string
+     */
+    public function createGwScheduleMessage()
+    {
+        $gwschedule_info = $this->getGwScheduleInfo();
+        $border          = self::BORDER;
+
+        if (count($gwschedule_info) <= 0) {
+            return '';
+        }
+
+        $schedule_message = sprintf('☆今後一ヶ月のスケジュールです。%s%s', PHP_EOL, PHP_EOL);
+
+        foreach ($gwschedule_info as $schedule) {
+
+//            if ($schedule['endTime'])
+//            {
+//                $period = sprintf('[%s - %s]', $schedule['startTime'], $schedule['endTime']);
+//            }
+//            else
+//            {
+//                $period = sprintf('[%s]', $schedule['startTime']);
+//            }
+            $period = date('Y年n月j日', strtotime($schedule['startTime']));
+
+            $schedule_message .= sprintf('%s %s%s', $period, $schedule['title'], PHP_EOL);
+        }
+
+        $schedule_message = $schedule_message . PHP_EOL . $border;
+
+        return $schedule_message;
+    }
+
+    /**
+     * @return mixed
+     * @throws \Exception
+     * @throws \HTTP_OAuth_Exception
+     * @throws \HTTP_Request2_LogicException
+     */
+    public function requestGwScheduleInfo()
+    {
+        Util::generateLogMessage('START');
+
+        // アクセストークンを取得
+        $access_token_info = $this->getAccessTokenInfo();
+
+        // グループIDを取得
+        $group_id = $this->getGroupId();
+
+        $consumer_key    = $this->cybozu["consumer_key"];
+        $consumer_secret = $this->cybozu["consumer_secret"];
+
+        $request = new \HTTP_Request2();
+        $request->setConfig('ssl_verify_peer', false);
+
+        $consumerRequest = new \HTTP_OAuth_Consumer_Request();
+        $consumerRequest->accept($request);
+
+        $oauth = new \HTTP_OAuth_Consumer($consumer_key,
+          $consumer_secret,
+          $access_token_info["oauth_token"],
+          $access_token_info["oauth_token_secret"]);
+        $oauth->accept($consumerRequest);
+
+        // 掲示板の取得
+        $res = $oauth->sendRequest($this->get_gwschedule_url, array('group' => $group_id), 'GET');
+
+        // HTTPステータスチェック
+        if ($res->getStatus() !== 200) {
+            throw new \Exception($res->getBody(), $res->getStatus());
+        }
+
+        // 解析
+        $xml        = preg_replace("/<(.+?):(.+?)>/", "<$1_$2>", $res->getBody());
+        $xml        = preg_replace("/_\/\//", "://", $xml);
+        $xml        = simplexml_load_string($xml);
+        $json       = json_encode($xml);
+        $gwschedule = json_decode($json, true);
+
+        Log::info("取得したスケジュール情報", $gwschedule);
+
+        Util::generateLogMessage('END');
+
+        return $gwschedule;
+    }
+
+    /**
+     * @param $schedule_info
+     *
+     * @return array
+     */
+    public function createGwscheduleInfo($schedule_info)
+    {
+
+        Util::generateLogMessage('START');
+
+        $result = array();
+        $count  = $schedule_info['cbl_totalCount'];
+
+        if ($count == 0) {
+            return null;
+        }
+
+        if ($count > 1) {
+            $schedules = $schedule_info['entry'];
+        } else {
+            $schedules[0] = $schedule_info['entry'];
+        }
+
+        foreach ($schedules as $key => $schedule) {
+
+            // 繰り返し予定の場合は整形が必要
+            if (isset($schedule['cblSch_recurrence'])) {
+
+                $when  = $schedule['cblSch_recurrence']['cbl_when'];
+                $first = $when['0'];
+                $end   = end($when);
+
+                $startTime = (isset($first['@attributes']['startTime']))
+                  ? $first['@attributes']['startTime'] : null;
+                $endTime   = (isset($end['@attributes']['endTime']))
+                  ? $end['@attributes']['endTime'] : null;
+
+                $startTime = Util::convertUtcToJst($startTime);
+                $endTime   = Util::convertUtcToJst($endTime);
+
+            } else {
+
+                $startTime = (isset($schedule['cbl_when']['@attributes']['startTime']))
+                  ? $schedule['cbl_when']['@attributes']['startTime'] : null;
+                $endTime   = (isset($schedule['cbl_when']['@attributes']['endTime']))
+                  ? $schedule['cbl_when']['@attributes']['endTime'] : null;
+
+            }
+
+            $result[$key]['id']        = (isset($schedule['id'])) ? $schedule['id'] : null;
+            $result[$key]['title']     = (isset($schedule['title'])) ? $schedule['title'] : null;
+            $result[$key]['summary']   = (isset($schedule['summary'])) ? $schedule['summary'] : null;
+            $result[$key]['startTime'] = $startTime;
+            $result[$key]['endTime']   = $endTime;
+
+            $result[$key]['id']        = ($result[$key]['id']) ? $result[$key]['id'] : null;
+            $result[$key]['title']     = ($result[$key]['title']) ? $result[$key]['title'] : null;
+            $result[$key]['summary']   = ($result[$key]['summary']) ? $result[$key]['summary'] : null;
+            $result[$key]['startTime'] = ($result[$key]['startTime']) ? $result[$key]['startTime'] : null;
+            $result[$key]['endTime']   = ($result[$key]['endTime']) ? $result[$key]['endTime'] : null;
+
+        }
+
+        Log::info("出力に使用するスケジュール情報", $result);
+
+        Util::generateLogMessage('END');
+
+        return $result;
+
+    }
+
+    /**
+     * @return array
+     */
+    public function getUser()
+    {
+        return $this->user;
+    }
+
+    /**
+     * @param array $user
+     */
+    public function setUser($user)
+    {
+        $this->user = $user;
+    }
+
+    /**
+     * @return string
+     */
+    public function getGroupName()
+    {
+        return $this->group_name;
+    }
+
+    /**
+     * @param string $group_name
+     */
+    public function setGroupName($group_name)
+    {
+        $this->group_name = $group_name;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTopicName()
+    {
+        return $this->topic_name;
+    }
+
+    /**
+     * @param string $topic_name
+     */
+    public function setTopicName($topic_name)
+    {
+        $this->topic_name = $topic_name;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getAccessTokenInfo()
+    {
+        return $this->access_token_info;
+    }
+
+    /**
+     * @param $access_token_info
+     */
+    public function setAccessTokenInfo($access_token_info)
+    {
+        $this->access_token_info = $access_token_info;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getGroupId()
+    {
+        return $this->group_id;
+    }
+
+    /**
+     * @param $group_id
+     */
+    public function setGroupId($group_id)
+    {
+        $this->group_id = $group_id;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getTopicId()
+    {
+        return $this->topic_id;
+    }
+
+    /**
+     * @param $topic_id
+     */
+    public function setTopicId($topic_id)
+    {
+        $this->topic_id = $topic_id;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getArticle()
+    {
+        return $this->article;
+    }
+
+    /**
+     * @param $article
+     */
+    public function setArticle($article)
+    {
+        $this->article = $article;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMessage()
+    {
+        return $this->message;
+    }
+
+    /**
+     * @param mixed $message
+     */
+    public function setMessage($message)
+    {
+        $this->message = $message;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getGwScheduleInfo()
+    {
+        return $this->gwschedule;
+    }
+
+    /**
+     * @param $gwschedule
+     */
+    public function setGwScheduleInfo($gwschedule)
+    {
+        $this->gwschedule = $gwschedule;
+    }
+
+
 }

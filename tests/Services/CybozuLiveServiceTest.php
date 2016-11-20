@@ -30,12 +30,36 @@ class CybozuLiveServiceTest extends TestCase
      */
     public function testRequestAccessToken()
     {
+
+        $user = [
+          'x_auth_username' => env('CYBOZULIVE_USER_NAME_DEV'),
+          'x_auth_password' => env('CYBOZULIVE_PASSWORD_DEV'),
+        ];
+        $this->service->setUser($user);
+
         $this->service->requestAccessToken();
 
         $token = $this->service->getAccessTokenInfo();
 
         $this->assertGreaterThan(0, mb_strlen($token["oauth_token"]));
         $this->assertGreaterThan(0, mb_strlen($token["oauth_token_secret"]));
+
+        /// 
+
+        $user = [
+          'x_auth_username' => 'aaaaaaaaaaaaaaaaaaa',
+          'x_auth_password' => 'aaaaaaaaaaaaaaaaaaa',
+        ];
+        $this->service->setUser($user);
+
+        try {
+            $this->service->requestAccessToken();
+            $this->fail('例外発生なし');
+        } catch (Exception $e) {
+            // エラーコードでの比較
+            $this->assertEquals(401, $e->getCode());
+        };
+
     }
 
 
@@ -105,13 +129,13 @@ EOM;
 //          'x_auth_username' => env('CYBOZULIVE_USER_NAME_DEV'),
 //          'x_auth_password' => env('CYBOZULIVE_PASSWORD_DEV'),
 //        ];
-        
+
         $user = [
           'x_auth_username' => env('CYBOZULIVE_USER_NAME'),
           'x_auth_password' => env('CYBOZULIVE_PASSWORD'),
         ];
         $this->service->setUser($user);
-        
+
 //        $this->service->setGroupName('検証用グループ');
 //        $this->service->setTopicName('検証用トピック');
         $this->service->setGroupName('自分用グループ');

@@ -2,6 +2,8 @@
 namespace app\Libs;
 
 use Log;
+use DateTime;
+use DateTimeZone;
 
 class Util
 {
@@ -41,4 +43,20 @@ class Util
     }
 
 
+    /**
+     * @param $string_date
+     *
+     * @return null|string
+     */
+    public function convertUtcToJst($string_date)
+    {
+        if (is_null($string_date))
+        {
+            return null;
+        }
+        
+        $t = new DateTime($string_date);
+        $t->setTimeZone(new DateTimeZone('Asia/Tokyo'));
+        return $t->format('Y-m-d H:i:s');
+    }
 }
