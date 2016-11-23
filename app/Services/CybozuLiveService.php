@@ -876,7 +876,7 @@ EOM;
 //            {
 //                $period = sprintf('[%s]', $schedule['startTime']);
 //            }
-            $period = date('Y年n月d日', strtotime($schedule['startTime']));
+            $period = date('m月d日', strtotime($schedule['startTime']));
 
             $schedule_message .= sprintf('%s %s%s', $period, $schedule['title'], PHP_EOL);
         }
