@@ -639,7 +639,7 @@ class CybozuLiveService
     {
         $messages = Config::get('nini.hello_message');
         $num      = (is_null($num)) ? mt_rand(0, count($messages)) : $num;
-        $message  = $messages[$num] . PHP_EOL . '[file:1]';
+        $message  = preg_replace("/ /", "", $messages[$num] ) . PHP_EOL . '[file:1]';
 
         return $message;
     }
@@ -876,7 +876,7 @@ EOM;
 //            {
 //                $period = sprintf('[%s]', $schedule['startTime']);
 //            }
-            $period = date('Y年n月j日', strtotime($schedule['startTime']));
+            $period = date('Y年n月d日', strtotime($schedule['startTime']));
 
             $schedule_message .= sprintf('%s %s%s', $period, $schedule['title'], PHP_EOL);
         }
