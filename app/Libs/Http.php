@@ -2,7 +2,6 @@
 namespace app\Libs;
 
 use Log;
-use Util;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 
@@ -18,11 +17,7 @@ class Http
      */
     public function __construct(GuzzleClientInterface $client = null)
     {
-        Util::generateLogMessage('START');
-
         $this->client = $client ?: new Client();
-
-        Util::generateLogMessage('END');
     }
     
     /**
@@ -33,9 +28,7 @@ class Http
      * @throws \Exception
      */
     public function get($url = null, $params = array())
-    {
-        Util::generateLogMessage('START');
-        
+    {        
         if (is_null($url)) {
             return false;
         }
@@ -52,9 +45,6 @@ class Http
 
         Log::info("response : ", $response);
 
-        Util::generateLogMessage('END');
-
         return $response;
-
     }
 }
