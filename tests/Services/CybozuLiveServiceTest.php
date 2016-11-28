@@ -143,6 +143,9 @@ EOM;
 
         $result = $this->service->postDailyInformation();
 
+        Log::info('user : ', $user);
+        Log::info('postDailyInformation : ', ['result' => $result]);
+
         $this->assertTrue($result);
 
     }

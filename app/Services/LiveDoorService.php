@@ -3,8 +3,7 @@ namespace App\Services;
 
 use Log;
 use Util;
-use GuzzleHttp\Client;
-use GuzzleHttp\ClientInterface as GuzzleClientInterface;
+use Http;
 
 /**
  * Class LiveDoorService
@@ -13,7 +12,6 @@ class LiveDoorService
 {
 
     private $weather_info;
-    private $client;
 
     const WEATHER_PREF         = '130010';  // 東京
     const GET_WEATHER_INFO_URL = 'http://weather.livedoor.com/forecast/webservice/json/v1';
@@ -22,12 +20,10 @@ class LiveDoorService
      * LiveDoorService constructor.
      *
      */
-    public function __construct(GuzzleClientInterface $client = null)
+    public function __construct()
     {
 
         Util::generateLogMessage('START');
-
-        $this->client = $client ?: new Client();
 
         Util::generateLogMessage('END');
 
@@ -70,17 +66,10 @@ class LiveDoorService
 
         Util::generateLogMessage('START');
 
-        $res = $this->client->get(self::GET_WEATHER_INFO_URL, [
-          'query' => [
-            'city' => self::WEATHER_PREF,
-          ],
-        ]);
+        $url    = self::GET_WEATHER_INFO_URL;
+        $params = ['city' => self::WEATHER_PREF];
 
-        if ($res->getStatusCode() !== 200) {
-            throw new \Exception($res->getBody(), $res->getStatusCode());
-        }
-
-        $weather = json_decode($res->getBody(), true);
+        $weather = Http::get($url, $params);
 
         Log::info("取得した天気情報", $weather);
 
@@ -88,22 +77,6 @@ class LiveDoorService
 
         return $weather;
 
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getWeatherInfo()
-    {
-        return $this->weather_info;
-    }
-
-    /**
-     * @param mixed $weather_info
-     */
-    public function setWeatherInfo($weather_info)
-    {
-        $this->weather_info = $weather_info;
     }
 
     /**
@@ -139,5 +112,21 @@ class LiveDoorService
 
         return $weather_info;
 
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getWeatherInfo()
+    {
+        return $this->weather_info;
+    }
+
+    /**
+     * @param mixed $weather_info
+     */
+    public function setWeatherInfo($weather_info)
+    {
+        $this->weather_info = $weather_info;
     }
 }

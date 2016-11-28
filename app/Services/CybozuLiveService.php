@@ -638,8 +638,8 @@ class CybozuLiveService
     public function getGreetingMessage($num = null)
     {
         $messages = Config::get('nini.hello_message');
-        $num      = (is_null($num)) ? mt_rand(0, count($messages)) : $num;
-        $message  = preg_replace("/ /", "", $messages[$num] ) . PHP_EOL . '[file:1]';
+        $num      = (is_null($num)) ? mt_rand(0, count($messages) - 1) : $num;
+        $message  = preg_replace("/ /", "", $messages[$num]) . PHP_EOL . '[file:1]';
 
         return $message;
     }
@@ -720,14 +720,14 @@ EOM;
         if (!empty($max) && is_numeric($max) && $max <= self::COLD_CASE) {
 
             $messages = Config::get('nini.cold_message');
-            $num      = (is_null($num)) ? mt_rand(0, count($messages)) : $num;
+            $num      = (is_null($num)) ? mt_rand(0, count($messages) - 1) : $num;
             $message  = sprintf('%s%s%s', PHP_EOL, $messages[$num], PHP_EOL);
 
         } else {
             if (!empty($max) && is_numeric($max) && self::HOT_CASE <= $max) {
 
                 $messages = Config::get('nini.hot_message');
-                $num      = (is_null($num)) ? mt_rand(0, count($messages)) : $num;
+                $num      = (is_null($num)) ? mt_rand(0, count($messages) - 1) : $num;
                 $message  = sprintf('%s%s%s', PHP_EOL, $messages[$num], PHP_EOL);
 
             }

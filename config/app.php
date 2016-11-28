@@ -160,6 +160,7 @@ return [
         
         // App
         App\Providers\UtilServiceProvider::class,
+        App\Providers\HttpServiceProvider::class,
 
         Intervention\Image\ImageServiceProvider::class,
 
@@ -212,6 +213,7 @@ return [
         
         // App
         'Util' => App\Facades\Util::class,
+        'Http' => App\Facades\Http::class,
 
         'Image' => Intervention\Image\Facades\Image::class
         
