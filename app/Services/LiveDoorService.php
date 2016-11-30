@@ -67,9 +67,10 @@ class LiveDoorService
         Util::generateLogMessage('START');
 
         $url    = self::GET_WEATHER_INFO_URL;
-        $params = ['city' => self::WEATHER_PREF];
+        $params = ['query' => ['city' => self::WEATHER_PREF]];
 
-        $weather = Http::get($url, $params);
+        $response = Http::get($url, $params);
+        $weather  = json_decode($response, true);
 
         Log::info("取得した天気情報", $weather);
 

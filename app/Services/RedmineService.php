@@ -3,8 +3,7 @@ namespace App\Services;
 
 use Log;
 use Util;
-use GuzzleHttp\Client;
-use GuzzleHttp\ClientInterface as GuzzleClientInterface;
+use Http;
 
 /**
  * Class RedmineService
@@ -13,7 +12,6 @@ class RedmineService
 {
 
     private $ticket_info;
-    private $client;
 
     const GET_TICKET_INFO_URL = 'https://redmine.se-project.co.jp/redmine/issues.xml';
     const REDMINE_API_KEY     = '2ebdda02980b6be55aeb76842fc89a0e624ead00';
@@ -22,14 +20,11 @@ class RedmineService
     /**
      * RedmineService constructor.
      *
-     * @param GuzzleClientInterface|null $client
      */
-    public function __construct(GuzzleClientInterface $client = null)
+    public function __construct()
     {
 
         Util::generateLogMessage('START');
-
-        $this->client = $client ?: new Client();
 
         Util::generateLogMessage('END');
 
@@ -53,7 +48,8 @@ class RedmineService
         $ticket_info = $this->createTicketInfo($response_ticket);
 
         // 更新日時が昨日以降のチケットを抽出
-        $ticket_info = $this->getUpdatedTicket($ticket_info);
+        $yesterday = gmdate('Y-m-d\TH:i:s\Z', strtotime('-1 day'));
+        $ticket_info = $this->getUpdatedTicket($ticket_info, $yesterday);
 
         // アクセサに設定
         $this->setTicketInfo($ticket_info);
@@ -87,28 +83,48 @@ class RedmineService
             $offset      = $offset + $limit;
         }
 
-        Log::info("取得したチケット情報", $ticket);
+        Log::info("取得したすべてのチケット情報", $ticket);
 
         Util::generateLogMessage('END');
 
         return $ticket;
 
     }
-
+    
     /**
+     * 指定件数分だけチケット情報を取得する
+     *
+     * @param string $offset
+     * @param string $limit
+     *
      * @return mixed
+     * @throws \Exception
      */
-    public function getTicketInfo()
+    public function requestTicketPerPage($offset = '0', $limit = '100')
     {
-        return $this->ticket_info;
-    }
+        Util::generateLogMessage('START');
 
-    /**
-     * @param mixed $ticket_info
-     */
-    public function setTicketInfo($ticket_info)
-    {
-        $this->ticket_info = $ticket_info;
+        $url    = self::GET_TICKET_INFO_URL;
+        $params = [
+          'query'  => [
+            'key'       => self::REDMINE_API_KEY,
+            'status_id' => 'open',
+            'offset'    => $offset,
+            'limit'     => $limit,
+          ],
+          'verify' => false
+        ];
+
+        $response = Http::get($url, $params);
+        $xml      = simplexml_load_string($response);
+        $json     = json_encode($xml);
+        $ticket   = json_decode($json, true);
+
+        Log::info("取得したチケット情報", $ticket);
+
+        Util::generateLogMessage('END');
+
+        return $ticket;
     }
 
     /**
@@ -169,63 +185,45 @@ class RedmineService
     }
 
     /**
-     * 指定件数分だけチケット情報を取得する
-     *
-     * @param string $offset
-     * @param string $limit
-     *
-     * @return mixed
-     * @throws \Exception
-     */
-    public function requestTicketPerPage($offset = '0', $limit = '100')
-    {
-        $res = $this->client->request('GET', self::GET_TICKET_INFO_URL, [
-          'query'  => [
-            'key'       => self::REDMINE_API_KEY,
-            'status_id' => 'open',
-            'offset'    => $offset,
-            'limit'     => $limit,
-          ],
-          'verify' => false
-        ]);
-
-        if ($res->getStatusCode() !== 200) {
-            throw new \Exception($res->getBody(), $res->getStatusCode());
-        }
-
-        $xml    = simplexml_load_string($res->getBody());
-        $json   = json_encode($xml);
-        $ticket = json_decode($json, true);
-
-        return $ticket;
-    }
-
-
-    /**
      * 一日前から更新されたチケットだけに限定
      *
      * @param $ticket_info
      *
      * @return array
      */
-    public function getUpdatedTicket($ticket_info)
+    public function getUpdatedTicket($ticket_info, $day)
     {
         $result    = [];
-        $yesterday = gmdate('Y-m-d\TH:i:s\Z', strtotime('-1 day'));
 
-        Log::info("チケット出力基準日時", ['yesterday' => $yesterday]);
+        Log::info("チケット出力基準日時", ['day' => $day]);
 
         foreach ($ticket_info as $ticket) {
 
             if ($ticket['project'] == '[sepima]') {
                 continue;
             }
-            
-            if ($ticket['updated_on'] > $yesterday) {
+
+            if ($ticket['updated_on'] > $day) {
                 $result[] = $ticket;
             }
         }
 
         return $result;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getTicketInfo()
+    {
+        return $this->ticket_info;
+    }
+
+    /**
+     * @param mixed $ticket_info
+     */
+    public function setTicketInfo($ticket_info)
+    {
+        $this->ticket_info = $ticket_info;
     }
 }

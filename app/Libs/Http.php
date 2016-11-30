@@ -32,18 +32,16 @@ class Http
         if (is_null($url)) {
             return false;
         }
-        
-        $query['query'] = $params;
 
-        $res = $this->client->get($url, $query);
+        $res = $this->client->get($url, $params);
 
         if ($res->getStatusCode() !== 200) {
             throw new \Exception($res->getBody(), $res->getStatusCode());
         }
 
-        $response = json_decode($res->getBody(), true);
-
-        Log::info("response : ", $response);
+        $response = $res->getBody();
+        
+        Log::info("response : " . $response);
 
         return $response;
     }
