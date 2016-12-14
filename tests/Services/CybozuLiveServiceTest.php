@@ -149,4 +149,17 @@ EOM;
         $this->assertTrue($result);
 
     }
+
+
+    /**
+     * 挨拶文の取得
+     *
+     */
+    public function testGetGreetingMessage()
+    {
+        $message = $this->service->getGreetingMessage();
+
+        $this->assertGreaterThan(0, mb_strlen($message));
+
+    }
 }

@@ -3,6 +3,7 @@ namespace App\Services;
 
 use Log;
 use Util;
+use Http;
 use Config;
 use App\Services\LiveDoorService;
 use App\Services\RedmineService;
@@ -568,7 +569,9 @@ class CybozuLiveService
         }
 
         // 掲示板のIDを取得
-        $topic_id        = $this->getTopicId();
+        $topic_id = $this->getTopicId();
+
+        // 挨拶文を取得
         $comment_message = $this->getGreetingMessage() . PHP_EOL;
 
         // 天気のメッセージを取得
@@ -637,9 +640,57 @@ class CybozuLiveService
      */
     public function getGreetingMessage($num = null)
     {
-        $messages = Config::get('nini.hello_message');
-        $num      = (is_null($num)) ? mt_rand(0, count($messages) - 1) : $num;
-        $message  = preg_replace("/ /", "", $messages[$num]) . PHP_EOL . '[file:1]';
+        Util::generateLogMessage('START');
+
+        // Googleトレンドから急上昇ワードを取得
+        
+        $url    = 'http://www.google.co.jp/trends/hottrends/atom/hourly?pn=p4';
+
+        $xml      = simplexml_load_file($url);
+        $xml      = str_replace(["&amp;", "&"], ["&", "&amp;"], $xml->entry->content);
+        $xml      = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+        $json     = json_encode($xml);
+        $keywords = json_decode($json, true);
+
+        if ($keywords) {
+
+            $num = (is_null($num)) ? mt_rand(0, ( count($keywords['li']) - 1 ) / 2 ) : $num;
+
+            $keyword = $keywords['li'][$num]['span']['a'];
+
+            Log::info("取得した急上昇ワード", ['keyword' => $keyword]);
+
+            // 急上昇ワードを人工知能に質問してみる
+            
+            $url      = 'https://chatbot-api.userlocal.jp/api/chat';
+            $params   = [
+              'query'  => [
+                'key'     => '3249ad8e8790d2b8b4c4',
+                'message' => $keyword . 'のことどう思う？',
+              ],
+              'verify' => false
+            ];
+            $response = Http::get($url, $params);
+            $response = json_decode($response, true);
+
+            $answer = $response['result'];
+
+            Log::info("取得した人工知能からの回答", ['answer' => $answer]);
+
+            $message = '「今日の急上昇ワードは' . $keyword . 'だって」' . PHP_EOL . '「' . $answer . '」';
+            $message .=  PHP_EOL . '[file:1]';
+
+        } else {
+            
+            // 急上昇ワードが取得できなかったら固定メッセージ
+            
+            $messages = Config::get('nini.hello_message');
+            $num      = (is_null($num)) ? mt_rand(0, count($messages) - 1) : $num;
+            $message  = preg_replace("/ /", "", $messages[$num]) . PHP_EOL . '[file:1]';
+
+        }
+
+        Util::generateLogMessage('END');
 
         return $message;
     }
