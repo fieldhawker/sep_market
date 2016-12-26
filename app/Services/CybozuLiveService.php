@@ -859,7 +859,7 @@ EOM;
         // 月末
         if ($end_of_month) {
 
-            $year   = date('Y');
+            $year   = date('Y', strtotime(date('Y-m-1') . '+1 month'));
             $month  = date('m', strtotime(date('Y-m-1') . '+1 month'));
             $border = self::BORDER;
 
