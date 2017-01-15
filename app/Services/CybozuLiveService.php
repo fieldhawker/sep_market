@@ -26,6 +26,10 @@ class CybozuLiveService
     private $article;
     private $message;
     private $gwschedule;
+    private $weather_message;
+    private $meigen_message;
+    private $shuzo_message;
+
 
     private $group_name;
     private $topic_name;
@@ -35,6 +39,7 @@ class CybozuLiveService
     private $get_group_id_url       = "https://api.cybozulive.com/api/group/V2";
     private $get_topic_id_url       = "https://api.cybozulive.com/api/board/V2";
     private $post_comment_url       = "https://api.cybozulive.com/api/comment/V2";
+    private $get_comment_url        = "https://api.cybozulive.com/api/comment/V2";
     private $get_gwschedule_url     = "https://api.cybozulive.com/api/gwSchedule/V2";
     private $get_rss_url            = "http://b.hatena.ne.jp/hotentry/it.rss?of=1&";
     private $user_agent             = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5)';
@@ -100,11 +105,19 @@ class CybozuLiveService
             $this->requestWeatherTweet();
 //            $this->livedoor->setWeatherData();
 
+            // 経営の名言を取得
+            $this->requestMeigenTweet();
+
+            // 修造の名言を取得
+            $this->getShuzoWord();
+
             // 昨日以降に更新されたチケットを取得
             $this->redmine->setTicketData();
 
             // POSTする文字列を生成
             $this->createMessageForDaily();
+
+            // 最古のコメントを削除する
 
             // デイリー情報をサイボウズに投稿
             $image_path = public_path('images/chara/07_sakura.jpg');
@@ -384,8 +397,6 @@ class CybozuLiveService
     /**
      * @return bool
      * @throws \Exception
-     * @throws \HTTP_OAuth_Exception
-     * @throws \HTTP_Request2_LogicException
      */
     public function requestWeatherTweet()
     {
@@ -400,6 +411,84 @@ class CybozuLiveService
           'lang'  => 'ja'
         ];
 
+        $res = $this->requestSearchTweet($params);
+
+        $res     = json_decode($res, true);
+        $text    = str_replace('RT @Yahoo_weather: ', '', $res['statuses'][0]['text']);
+        $message = '☆今日の天気です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
+
+        $this->setWeatherMessage($message);
+
+        Util::generateLogMessage('END');
+
+        return true;
+    }
+
+    /**
+     * @return bool
+     * @throws \Exception
+     */
+    public function requestMeigenTweet()
+    {
+        Util::generateLogMessage('START');
+
+        $border = self::BORDER;
+
+        // 検索条件
+        $params = [
+          'q'     => '@keieisyameigen_',
+          'count' => '1',
+          'lang'  => 'ja'
+        ];
+
+        $res = $this->requestSearchTweet($params);
+
+        $res     = json_decode($res, true);
+        $text    = str_replace('RT @keieisyameigen_: ', '', $res['statuses'][0]['text']);
+        $message = '☆今日の格言です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
+
+        $this->setMeigenMessage($message);
+
+        Util::generateLogMessage('END');
+
+        return true;
+    }
+
+    /**
+     * @return bool
+     * @throws \Exception
+     */
+    public function getShuzoWord()
+    {
+        Util::generateLogMessage('START');
+
+        $border = self::BORDER;
+
+        $messages = Config::get('const.shuzo');
+        $text     = $messages[date('j')];
+
+        $message = '☆今日の修造です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
+
+        $this->setShuzoMessage($message);
+
+        Util::generateLogMessage('END');
+
+        return true;
+    }
+
+    /**
+     * @param $params
+     *
+     * @return mixed
+     * @throws \Exception
+     * @throws \HTTP_OAuth_Exception
+     * @throws \HTTP_Request2_LogicException
+     */
+    public function requestSearchTweet($params)
+    {
+        Util::generateLogMessage('START');
+
+        $access_token_info                       = [];
         $access_token_info["oauth_token"]        = self::TWITTER_TOKEN;
         $access_token_info["oauth_token_secret"] = self::TWITTER_TOKEN_SECRET;
 
@@ -432,15 +521,9 @@ class CybozuLiveService
 
         Log::info("取得したtweet情報", ["response" => $res]);
 
-        $res     = json_decode($res, true);
-        $text    = str_replace('RT @Yahoo_weather: ', '', $res['statuses'][0]['text']);
-        $message = '☆今日の天気です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
-
-        $this->setWeatherMessage($message);
-
         Util::generateLogMessage('END');
 
-        return true;
+        return $res;
     }
 
     /**
@@ -646,6 +729,16 @@ class CybozuLiveService
         $weather_message = $this->getWeatherMessage();
         if ($weather_message) {
             $comment_message .= sprintf('%s%s', $weather_message, PHP_EOL);
+        }
+        // 経営者の格言のメッセージを取得
+        $meigen_message = $this->getMeigenMessage();
+        if ($meigen_message) {
+            $comment_message .= sprintf('%s%s', $meigen_message, PHP_EOL);
+        }
+        // 修造の格言のメッセージを取得
+        $shuzo_message = $this->getShuzoMessage();
+        if ($shuzo_message) {
+            $comment_message .= sprintf('%s%s', $shuzo_message, PHP_EOL);
         }
 
         // チケットのメッセージを取得
@@ -920,12 +1013,16 @@ EOM;
     {
         $eom_message = '';
 
+        // 月初からの日数
+        $diff_days      = (strtotime($date) - strtotime(date('Y-m-01'))) / (60 * 60 * 24);
+        $start_of_month = ($diff_days <= 5);
+
         // 月末までの日数
         $diff_days    = (strtotime(date('Y-m-t')) - strtotime($date)) / (60 * 60 * 24);
         $end_of_month = ($diff_days <= 5);
 
-        // 月末
-        if ($end_of_month) {
+        // 月初 or 月末
+        if ($start_of_month || $end_of_month) {
 
             $year   = date('Y', strtotime(date('Y-m-1') . '+1 month'));
             $month  = date('m', strtotime(date('Y-m-1') . '+1 month'));
@@ -1278,7 +1375,7 @@ EOM;
      */
     public function getWeatherMessage()
     {
-        return $this->message;
+        return $this->weather_message;
     }
 
     /**
@@ -1286,6 +1383,40 @@ EOM;
      */
     public function setWeatherMessage($message)
     {
-        $this->message = $message;
+        $this->weather_message = $message;
     }
+
+    /**
+     * @return mixed
+     */
+    public function getMeigenMessage()
+    {
+        return $this->meigen_message;
+    }
+
+    /**
+     * @param mixed $message
+     */
+    public function setMeigenMessage($message)
+    {
+        $this->meigen_message = $message;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getShuzoMessage()
+    {
+        return $this->shuzo_message;
+    }
+
+    /**
+     * @param mixed $message
+     */
+    public function setShuzoMessage($message)
+    {
+        $this->shuzo_message = $message;
+    }
+
 }
+
