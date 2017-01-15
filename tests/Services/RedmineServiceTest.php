@@ -33,17 +33,21 @@ class RedmineServiceTest extends TestCase
 
         $response = $this->service->getTicketInfo();
 
-        $this->assertArrayHasKey('id', $response[0]);
-        $this->assertArrayHasKey('project', $response[0]);
-        $this->assertArrayHasKey('author', $response[0]);
-        $this->assertArrayHasKey('assigned_to', $response[0]);
-        $this->assertArrayHasKey('subject', $response[0]);
-        $this->assertArrayHasKey('description', $response[0]);
-        $this->assertArrayHasKey('start_date', $response[0]);
-        $this->assertArrayHasKey('due_date', $response[0]);
-        $this->assertArrayHasKey('done_ratio', $response[0]);
-        $this->assertArrayHasKey('created_on', $response[0]);
-        $this->assertArrayHasKey('updated_on', $response[0]);
+        if (count($response) > 0) {
+
+            $this->assertArrayHasKey('id', $response[0]);
+            $this->assertArrayHasKey('project', $response[0]);
+            $this->assertArrayHasKey('author', $response[0]);
+            $this->assertArrayHasKey('assigned_to', $response[0]);
+            $this->assertArrayHasKey('subject', $response[0]);
+            $this->assertArrayHasKey('description', $response[0]);
+            $this->assertArrayHasKey('start_date', $response[0]);
+            $this->assertArrayHasKey('due_date', $response[0]);
+            $this->assertArrayHasKey('done_ratio', $response[0]);
+            $this->assertArrayHasKey('created_on', $response[0]);
+            $this->assertArrayHasKey('updated_on', $response[0]);
+            
+        }
 
     }
 
