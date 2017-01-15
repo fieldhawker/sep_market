@@ -5,7 +5,7 @@ use Log;
 use Util;
 use Http;
 use Config;
-use App\Services\LiveDoorService;
+//use App\Services\LiveDoorService;
 use App\Services\RedmineService;
 use Intervention\Image\Facades\Image as Image;
 
@@ -39,10 +39,15 @@ class CybozuLiveService
     private $get_rss_url            = "http://b.hatena.ne.jp/hotentry/it.rss?of=1&";
     private $user_agent             = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5)';
 
-    const ARTICLE_NUM = 10;
-    const COLD_CASE   = 20;
-    const HOT_CASE    = 30;
-    const BORDER      = '-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-';
+    const ARTICLE_NUM             = 10;
+    const COLD_CASE               = 20;
+    const HOT_CASE                = 30;
+    const BORDER                  = '-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-∵-∴-';
+    const TWITTER_TOKEN           = '28455674-wtA4jZ7vVx1pRfj52u4uEiwQfv1fiS8SxQ76R3lZc';
+    const TWITTER_TOKEN_SECRET    = 'mBfyqak8p3Q7P1MHyEPekrsnKd7Ugp88AmhViIvoo3vzh';
+    const TWITTER_CONSUMER_KEY    = 'owFvNVL5dnxxE4QLWWvo4nrIE';
+    const TWITTER_CONSUMER_SECRET = 'riWGclpWKqHU91bOghs9WngEwYYt0s1rXabMPACzgG004v4c7L';
+    const TWITTER_SEARCH_URL      = 'https://api.twitter.com/1.1/search/tweets.json';
 
 
     /**
@@ -92,7 +97,8 @@ class CybozuLiveService
             $this->setGwScheduleData();
 
             // 天気を取得
-            $this->livedoor->setWeatherData();
+            $this->requestWeatherTweet();
+//            $this->livedoor->setWeatherData();
 
             // 昨日以降に更新されたチケットを取得
             $this->redmine->setTicketData();
@@ -378,6 +384,68 @@ class CybozuLiveService
     /**
      * @return bool
      * @throws \Exception
+     * @throws \HTTP_OAuth_Exception
+     * @throws \HTTP_Request2_LogicException
+     */
+    public function requestWeatherTweet()
+    {
+        Util::generateLogMessage('START');
+
+        $border = self::BORDER;
+
+        // 検索条件
+        $params = [
+          'q'     => '@Yahoo_weather,#東京の天気',
+          'count' => '1',
+          'lang'  => 'ja'
+        ];
+
+        $access_token_info["oauth_token"]        = self::TWITTER_TOKEN;
+        $access_token_info["oauth_token_secret"] = self::TWITTER_TOKEN_SECRET;
+
+        $consumer_key    = self::TWITTER_CONSUMER_KEY;
+        $consumer_secret = self::TWITTER_CONSUMER_SECRET;
+        $get_tweet_url   = self::TWITTER_SEARCH_URL;
+
+        $request = new \HTTP_Request2();
+        $request->setConfig('ssl_verify_peer', false);
+
+        $consumerRequest = new \HTTP_OAuth_Consumer_Request();
+        $consumerRequest->accept($request);
+
+        $oauth = new \HTTP_OAuth_Consumer(
+          $consumer_key,
+          $consumer_secret,
+          $access_token_info["oauth_token"],
+          $access_token_info["oauth_token_secret"]);
+        $oauth->accept($consumerRequest);
+
+        // ツイートの取得
+        $req = $oauth->sendRequest($get_tweet_url, $params, 'GET');
+
+        // HTTPステータスチェック
+        if ($req->getStatus() !== 200) {
+            throw new \Exception($req->getBody(), $req->getStatus());
+        }
+
+        $res = $req->getBody();
+
+        Log::info("取得したtweet情報", ["response" => $res]);
+
+        $res     = json_decode($res, true);
+        $text    = str_replace('RT @Yahoo_weather: ', '', $res['statuses'][0]['text']);
+        $message = '☆今日の天気です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
+
+        $this->setWeatherMessage($message);
+
+        Util::generateLogMessage('END');
+
+        return true;
+    }
+
+    /**
+     * @return bool
+     * @throws \Exception
      */
     public function setGwScheduleData()
     {
@@ -575,7 +643,7 @@ class CybozuLiveService
         $comment_message = $this->getGreetingMessage() . PHP_EOL;
 
         // 天気のメッセージを取得
-        $weather_message = $this->createWeatherMessage();
+        $weather_message = $this->getWeatherMessage();
         if ($weather_message) {
             $comment_message .= sprintf('%s%s', $weather_message, PHP_EOL);
         }
@@ -643,8 +711,8 @@ class CybozuLiveService
         Util::generateLogMessage('START');
 
         // Googleトレンドから急上昇ワードを取得
-        
-        $url    = 'http://www.google.co.jp/trends/hottrends/atom/hourly?pn=p4';
+
+        $url = 'http://www.google.co.jp/trends/hottrends/atom/hourly?pn=p4';
 
         $xml      = simplexml_load_file($url);
         $xml      = str_replace(["&amp;", "&"], ["&", "&amp;"], $xml->entry->content);
@@ -654,14 +722,14 @@ class CybozuLiveService
 
         if ($keywords) {
 
-            $num = (is_null($num)) ? mt_rand(0, ( count($keywords['li']) - 1 ) / 2 ) : $num;
+            $num = (is_null($num)) ? mt_rand(0, (count($keywords['li']) - 1) / 2) : $num;
 
             $keyword = $keywords['li'][$num]['span']['a'];
 
             Log::info("取得した急上昇ワード", ['keyword' => $keyword]);
 
             // 急上昇ワードを人工知能に質問してみる
-            
+
             $url      = 'https://chatbot-api.userlocal.jp/api/chat';
             $params   = [
               'query'  => [
@@ -678,12 +746,12 @@ class CybozuLiveService
             Log::info("取得した人工知能からの回答", ['answer' => $answer]);
 
             $message = '「今日の急上昇ワードは' . $keyword . 'だって」' . PHP_EOL . '「' . $answer . '」';
-            $message .=  PHP_EOL . '[file:1]';
+            $message .= PHP_EOL . '[file:1]';
 
         } else {
-            
+
             // 急上昇ワードが取得できなかったら固定メッセージ
-            
+
             $messages = Config::get('nini.hello_message');
             $num      = (is_null($num)) ? mt_rand(0, count($messages) - 1) : $num;
             $message  = preg_replace("/ /", "", $messages[$num]) . PHP_EOL . '[file:1]';
@@ -721,41 +789,41 @@ EOM;
     }
 
 
-    /**
-     * @return string
-     */
-    public function createWeatherMessage()
-    {
-        // 天気情報を元にメッセージを作成
-        $weather_info = $this->livedoor->getWeatherInfo();
-
-        if (!is_array($weather_info)) {
-            return '';
-        }
-
-        $border          = self::BORDER;
-        $weather_message = '';
-        $temp_message    = '';
-        $other_message   = '';
-
-        $weather_message = sprintf('☆%sの%sの天気は「%s」です。',
-          $weather_info['label'], $weather_info['pref'], $weather_info['telop']);
-        $weather_message = ($weather_message) ? $weather_message . PHP_EOL : '';
-
-        $min = $weather_info['temp_min'];
-        $max = $weather_info['temp_max'];
-
-        $temp_message = $this->createTempMessage($max, $min);
-        $temp_message = ($temp_message) ? $temp_message . PHP_EOL : '';
-
-        $temp_other_message = $this->createTempOtherMessage($max, $min);
-        $temp_other_message = ($temp_other_message) ? $temp_other_message . PHP_EOL : '';
-
-        $weather_message = $weather_message . $temp_message . $temp_other_message;
-        $weather_message = ($weather_message) ? $weather_message . PHP_EOL . $border : '';
-
-        return $weather_message;
-    }
+//    /**
+//     * @return string
+//     */
+//    public function createWeatherMessage()
+//    {
+//        // 天気情報を元にメッセージを作成
+//        $weather_info = $this->livedoor->getWeatherInfo();
+//
+//        if (!is_array($weather_info)) {
+//            return '';
+//        }
+//
+//        $border          = self::BORDER;
+//        $weather_message = '';
+//        $temp_message    = '';
+//        $other_message   = '';
+//
+//        $weather_message = sprintf('☆%sの%sの天気は「%s」です。',
+//          $weather_info['label'], $weather_info['pref'], $weather_info['telop']);
+//        $weather_message = ($weather_message) ? $weather_message . PHP_EOL : '';
+//
+//        $min = $weather_info['temp_min'];
+//        $max = $weather_info['temp_max'];
+//
+//        $temp_message = $this->createTempMessage($max, $min);
+//        $temp_message = ($temp_message) ? $temp_message . PHP_EOL : '';
+//
+//        $temp_other_message = $this->createTempOtherMessage($max, $min);
+//        $temp_other_message = ($temp_other_message) ? $temp_other_message . PHP_EOL : '';
+//
+//        $weather_message = $weather_message . $temp_message . $temp_other_message;
+//        $weather_message = ($weather_message) ? $weather_message . PHP_EOL . $border : '';
+//
+//        return $weather_message;
+//    }
 
 
     /**
@@ -1205,5 +1273,19 @@ EOM;
         $this->gwschedule = $gwschedule;
     }
 
+    /**
+     * @return mixed
+     */
+    public function getWeatherMessage()
+    {
+        return $this->message;
+    }
 
+    /**
+     * @param mixed $message
+     */
+    public function setWeatherMessage($message)
+    {
+        $this->message = $message;
+    }
 }

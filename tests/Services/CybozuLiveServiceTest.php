@@ -162,4 +162,11 @@ EOM;
         $this->assertGreaterThan(0, mb_strlen($message));
 
     }
+    
+    public function testRequestWeatherTweet()
+    {
+        
+        $this->service->requestWeatherTweet();
+        
+    }
 }
