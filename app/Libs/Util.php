@@ -2,6 +2,7 @@
 namespace app\Libs;
 
 use Log;
+use Http;
 use DateTime;
 use DateTimeZone;
 
@@ -58,5 +59,24 @@ class Util
         $t = new DateTime($string_date);
         $t->setTimeZone(new DateTimeZone('Asia/Tokyo'));
         return $t->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * @param $message
+     *
+     * @return bool
+     */
+    public function postSlack($message)
+    {
+        $url      = 'https://hooks.slack.com/services/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';
+        $params   = [
+          'channel'    => "#laravel_logs",
+          'username'   => "laravel works.",
+          'text'       => $message,
+          'icon_emoji' => ":ghost:",
+        ];
+        $response = Http::postJson($url, $params);
+        
+        return true;
     }
 }

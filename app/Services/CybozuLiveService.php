@@ -419,6 +419,9 @@ class CybozuLiveService
 
         $this->setWeatherMessage($message);
 
+        // 生成した文字列をslackに生成
+        Util::postSlack($message);
+
         Util::generateLogMessage('END');
 
         return true;
@@ -448,7 +451,10 @@ class CybozuLiveService
         $message = '☆今日の格言です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
 
         $this->setMeigenMessage($message);
-
+        
+        // 生成した文字列をslackに生成
+        Util::postSlack($message);
+        
         Util::generateLogMessage('END');
 
         return true;
@@ -470,6 +476,9 @@ class CybozuLiveService
         $message = '☆今日の修造です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
 
         $this->setShuzoMessage($message);
+        
+        // 生成した文字列をslackに生成
+        Util::postSlack($message);
 
         Util::generateLogMessage('END');
 
@@ -851,6 +860,9 @@ class CybozuLiveService
 
         }
 
+        // 生成した文字列をslackに生成
+        Util::postSlack($message);
+
         Util::generateLogMessage('END');
 
         return $message;
@@ -1064,6 +1076,9 @@ EOM;
         }
 
         $ticket_message = $ticket_message . PHP_EOL . $border;
+        
+        // 生成した文字列をslackに生成
+        Util::postSlack($ticket_message);
 
         return $ticket_message;
     }
@@ -1098,6 +1113,9 @@ EOM;
         }
 
         $schedule_message = $schedule_message . PHP_EOL . $border;
+
+        // 生成した文字列をslackに生成
+        Util::postSlack($schedule_message);
 
         return $schedule_message;
     }
