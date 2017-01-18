@@ -120,9 +120,10 @@ class CybozuLiveService
             // 最古のコメントを削除する
 
             // デイリー情報をサイボウズに投稿
-            $image_path = public_path('images/chara/07_sakura.jpg');
-            $image_name = 's.jpg';
-            $this->postCommentWithImage($image_path, $image_name);
+//            $image_path = public_path('images/chara/07_sakura.jpg');
+//            $image_name = 's.jpg';
+//            $this->postCommentWithImage($image_path, $image_name);
+            $this->postComment();
 
         } catch (HTTP_OAuth_Exception $hoe) {
 
@@ -757,10 +758,10 @@ class CybozuLiveService
         }
 
         // スケジュールのメッセージを取得
-        $gwschedule_message = $this->createGwScheduleMessage();
-        if ($gwschedule_message) {
-            $comment_message .= sprintf('%s%s', $gwschedule_message, PHP_EOL);
-        }
+//        $gwschedule_message = $this->createGwScheduleMessage();
+//        if ($gwschedule_message) {
+//            $comment_message .= sprintf('%s%s', $gwschedule_message, PHP_EOL);
+//        }
 
         // 週報のメッセージを取得
         $weekly_report_message = $this->createWeeklyReportMessage($date);
@@ -848,7 +849,7 @@ class CybozuLiveService
             Log::info("取得した人工知能からの回答", ['answer' => $answer]);
 
             $message = '「今日の急上昇ワードは' . $keyword . 'だって」' . PHP_EOL . '「' . $answer . '」';
-            $message .= PHP_EOL . '[file:1]';
+            $message .= PHP_EOL . 'https://c1.staticflickr.com/1/474/31575570823_06be332231.jpg';
 
         } else {
 
