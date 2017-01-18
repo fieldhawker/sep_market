@@ -45,4 +45,39 @@ class Http
 
         return $response;
     }
+
+    /**
+     * @param null  $url
+     * @param array $params
+     *
+     * @return bool|\Psr\Http\Message\StreamInterface
+     * @throws \Exception
+     */
+    public function postJson($url = null, $params = array())
+    {
+        if (is_null($url)) {
+            return false;
+        }
+
+        $body = json_encode($params);
+        
+        $res = $this->client->post(
+          $url,
+          [
+            'future' => true,
+            'headers' => ['Content-Type' => 'application/json'],
+            'body' => $body
+          ]
+        );
+
+        if ($res->getStatusCode() !== 200) {
+            throw new \Exception($res->getBody(), $res->getStatusCode());
+        }
+
+        $response = $res->getBody();
+
+        Log::info("response : " . $response);
+
+        return $response;
+    }
 }
