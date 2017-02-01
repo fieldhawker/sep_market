@@ -452,10 +452,10 @@ class CybozuLiveService
         $message = '☆今日の格言です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
 
         $this->setMeigenMessage($message);
-        
+
         // 生成した文字列をslackに生成
         Util::postSlack($message);
-        
+
         Util::generateLogMessage('END');
 
         return true;
@@ -477,7 +477,7 @@ class CybozuLiveService
         $message = '☆今日の修造です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
 
         $this->setShuzoMessage($message);
-        
+
         // 生成した文字列をslackに生成
         Util::postSlack($message);
 
@@ -832,24 +832,76 @@ class CybozuLiveService
             Log::info("取得した急上昇ワード", ['keyword' => $keyword]);
 
             // 急上昇ワードを人工知能に質問してみる
+            
+            $ahead = !(date('j')%2==0);
+            $search_word = $keyword . 'のことどう思う？';
+            $answer = '';
+            $answer_messages = [];
 
-            $url      = 'https://chatbot-api.userlocal.jp/api/chat';
-            $params   = [
-              'query'  => [
-                'key'     => '3249ad8e8790d2b8b4c4',
-                'message' => $keyword . 'のことどう思う？',
-              ],
-              'verify' => false
-            ];
-            $response = Http::get($url, $params);
-            $response = json_decode($response, true);
+            for ($i = 0; $i < 5; $i++) {
 
-            $answer = $response['result'];
+                if ($ahead) {
 
-            Log::info("取得した人工知能からの回答", ['answer' => $answer]);
+                    // docomo 
 
-            $message = '「今日の急上昇ワードは' . $keyword . 'だって」' . PHP_EOL . '「' . $answer . '」';
-            $message .= PHP_EOL . 'https://c1.staticflickr.com/1/474/31575570823_06be332231.jpg';
+                    $key = "785a6f616d6c5049536b63384f514f78443236302f7058384c4b34436559476a71725942507254634e4c38";
+
+                    $url = 'https://api.apigw.smt.docomo.ne.jp/dialogue/v1/dialogue';
+                    $url = $url . "?APIKEY=" . $key;
+
+                    $params = [
+                      'utt'            => $search_word,
+                      "context"        => "",
+                      "nickname"       => "さくら",
+                      "nickname_y"     => "サクラ",
+                      "sex"            => "女",
+                      "bloodtype"      => "O",
+                      "birthdateY"     => "1995",
+                      "birthdateM"     => "8",
+                      "birthdateD"     => "20",
+                      "age"            => "18",
+                      "constellations" => "双子座",
+                      "place"          => "東京",
+                      "mode"           => "dialog"
+                    ];
+
+                    $response = Http::postJson($url, $params);
+                    $response = json_decode($response, true);
+                    
+                    $search_word = $response['utt'];
+                    $answer = 'D「' . $response['utt'] . '」';
+
+                    Log::info("取得した人工知能からの回答", ['answer' => $answer]);
+
+                } else {
+
+                    $url      = 'https://chatbot-api.userlocal.jp/api/chat';
+                    $params   = [
+                      'query'  => [
+                        'key'     => '3249ad8e8790d2b8b4c4',
+                        'message' => $search_word,
+                      ],
+                      'verify' => false
+                    ];
+                    $response = Http::get($url, $params);
+                    $response = json_decode($response, true);
+                    
+                    $search_word = $response['result'];
+                    $answer = 'U「' . $response['result'] . '」';
+
+                    Log::info("取得した人工知能からの回答", ['answer' => $answer]);
+
+                }
+                
+                $ahead = !$ahead;
+                $answer_messages[] = $answer;
+                
+            }
+
+
+            $message = '「今日の急上昇ワードは' . $keyword . 'だって」' . PHP_EOL . implode (PHP_EOL, $answer_messages);
+//            $message .= PHP_EOL . 'https://c1.staticflickr.com/1/474/31575570823_06be332231.jpg';
+            $message .= PHP_EOL;
 
         } else {
 
@@ -861,6 +913,8 @@ class CybozuLiveService
 
         }
 
+        Log::info("生成した文字列", ['message' => $message]);
+        
         // 生成した文字列をslackに生成
         Util::postSlack($message);
 
@@ -1077,7 +1131,7 @@ EOM;
         }
 
         $ticket_message = $ticket_message . PHP_EOL . $border;
-        
+
         // 生成した文字列をslackに生成
         Util::postSlack($ticket_message);
 
