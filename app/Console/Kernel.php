@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         // Commands\Inspire::class,
         \App\Console\Commands\PostInterestingArticle::class,    // サイボウズLIVEへの興味深い記事の投稿
         \App\Console\Commands\PostDailyInformation::class,      // 毎日のトピックスをサイボウズLIVEに投稿します
+        \App\Console\Commands\postArtificialIntelligenceTalk::class,      // AI同士の会話をサイボウズLIVEに投稿します
     ];
 
     /**

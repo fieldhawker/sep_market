@@ -123,6 +123,37 @@ EOM;
      * デイリー情報の投稿に成功するか
      *
      */
+    public function testPostArtificialIntelligenceTalk()
+    {
+//        $user = [
+//          'x_auth_username' => env('CYBOZULIVE_USER_NAME_DEV'),
+//          'x_auth_password' => env('CYBOZULIVE_PASSWORD_DEV'),
+//        ];
+
+        $user = [
+          'x_auth_username' => env('CYBOZULIVE_USER_NAME'),
+          'x_auth_password' => env('CYBOZULIVE_PASSWORD'),
+        ];
+        $this->service->setUser($user);
+
+//        $this->service->setGroupName('検証用グループ');
+//        $this->service->setTopicName('検証用トピック');
+        $this->service->setGroupName('自分用グループ');
+        $this->service->setTopicName('メモするトピ');
+
+        $result = $this->service->postArtificialIntelligenceTalk();
+
+        Log::info('user : ', $user);
+        Log::info('postArtificialIntelligenceTalk : ', ['result' => $result]);
+
+        $this->assertTrue($result);
+
+    }
+    
+    /**
+     * デイリー情報の投稿に成功するか
+     *
+     */
     public function testPostDailyInformation()
     {
 //        $user = [
@@ -155,11 +186,11 @@ EOM;
      * 挨拶文の取得
      *
      */
-    public function testGetGreetingMessage()
+    public function testGetAiMessage()
     {
-        $message = $this->service->getGreetingMessage();
-
-        $this->assertGreaterThan(0, mb_strlen($message));
+//        $message = $this->service->getAiMessage();
+//
+//        $this->assertGreaterThan(0, mb_strlen($message));
 
     }
     

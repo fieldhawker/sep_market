@@ -78,6 +78,55 @@ class CybozuLiveService
     }
 
     /**
+     * AI同士の会話をサイボウズLIVEに投稿する
+     *
+     * @return bool
+     */
+    public function postArtificialIntelligenceTalk()
+    {
+
+        Util::generateLogMessage('START');
+
+        try {
+
+            // アクセストークンを取得
+            $this->requestAccessToken();
+
+            // グループIDを取得
+            $this->requestGroupId();
+
+            // トピックIDを取得
+            $this->requestTopicId();
+
+            // POSTする文字列を生成
+            $this->createMessageByAI();
+
+            $this->postComment();
+
+        } catch (HTTP_OAuth_Exception $hoe) {
+
+            Log::info('HTTP_OAuth_Exception', ['hoe' => $hoe]);
+            exit;
+
+        } catch (\HTTP_Request2_Exception $hr2e) {
+
+            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
+            exit;
+
+        } catch (\Exception $e) {
+
+            Log::info('Exception', ['e' => $e]);
+            exit;
+
+        }
+
+        Util::generateLogMessage('END');
+
+        return true;
+
+    }
+
+    /**
      * デイリー情報をサイボウズに投稿する
      *
      * @return bool
@@ -718,6 +767,27 @@ class CybozuLiveService
 
     }
 
+    /**
+     * @internal param mixed $message
+     */
+    public function createMessageByAI($date = null)
+    {
+        // 日付型チェック
+        if (is_null($date) || $date !== date("Y-m-d", strtotime($date))) {
+            $date = date('Y-m-d');
+        }
+
+        // 掲示板のIDを取得
+        $topic_id = $this->getTopicId();
+
+        // 挨拶文を取得
+        $comment_message = $this->getAiMessage() . PHP_EOL;
+
+        // 投稿用XMLの生成
+        $xmlString = $this->getXmlString($topic_id, $comment_message);
+
+        $this->setMessage($xmlString);
+    }
 
     /**
      * @internal param mixed $message
@@ -733,7 +803,8 @@ class CybozuLiveService
         $topic_id = $this->getTopicId();
 
         // 挨拶文を取得
-        $comment_message = $this->getGreetingMessage() . PHP_EOL;
+//        $comment_message = $this->getGreetingMessage() . PHP_EOL;
+        $comment_message = '';
 
         // 天気のメッセージを取得
         $weather_message = $this->getWeatherMessage();
@@ -804,12 +875,13 @@ class CybozuLiveService
         return true;
     }
 
+
     /**
      * @param null $num
      *
      * @return string
      */
-    public function getGreetingMessage($num = null)
+    public function getAiMessage($num = null)
     {
         Util::generateLogMessage('START');
 
@@ -832,13 +904,13 @@ class CybozuLiveService
             Log::info("取得した急上昇ワード", ['keyword' => $keyword]);
 
             // 急上昇ワードを人工知能に質問してみる
-            
-            $ahead = !(date('j')%2==0);
-            $search_word = $keyword . 'のことどう思う？';
-            $answer = '';
+
+            $ahead           = !(date('j') % 2 == 0);
+            $search_word     = $keyword . 'のことどう思う？';
+            $answer          = '';
             $answer_messages = [];
 
-            for ($i = 0; $i < 5; $i++) {
+            for ($i = 0; $i < 30; $i++) {
 
                 if ($ahead) {
 
@@ -867,9 +939,9 @@ class CybozuLiveService
 
                     $response = Http::postJson($url, $params);
                     $response = json_decode($response, true);
-                    
+
                     $search_word = $response['utt'];
-                    $answer = 'D「' . $response['utt'] . '」';
+                    $answer      = 'D「' . $response['utt'] . '」';
 
                     Log::info("取得した人工知能からの回答", ['answer' => $answer]);
 
@@ -885,21 +957,20 @@ class CybozuLiveService
                     ];
                     $response = Http::get($url, $params);
                     $response = json_decode($response, true);
-                    
+
                     $search_word = $response['result'];
-                    $answer = 'U「' . $response['result'] . '」';
+                    $answer      = 'U「' . $response['result'] . '」';
 
                     Log::info("取得した人工知能からの回答", ['answer' => $answer]);
 
                 }
-                
-                $ahead = !$ahead;
+
+                $ahead             = !$ahead;
                 $answer_messages[] = $answer;
-                
+
             }
 
-
-            $message = '「今日の急上昇ワードは' . $keyword . 'だって」' . PHP_EOL . implode (PHP_EOL, $answer_messages);
+            $message = 'お題：' . $keyword . ' ' . PHP_EOL . PHP_EOL . implode(PHP_EOL, $answer_messages);
 //            $message .= PHP_EOL . 'https://c1.staticflickr.com/1/474/31575570823_06be332231.jpg';
             $message .= PHP_EOL;
 
@@ -914,13 +985,132 @@ class CybozuLiveService
         }
 
         Log::info("生成した文字列", ['message' => $message]);
-        
+
         // 生成した文字列をslackに生成
         Util::postSlack($message);
 
         Util::generateLogMessage('END');
 
         return $message;
+    }
+
+    /**
+     * @param null $num
+     *
+     * @return string
+     */
+    public function getGreetingMessage($num = null)
+    {
+//        Util::generateLogMessage('START');
+//
+//        // Googleトレンドから急上昇ワードを取得
+//
+//        $url = 'http://www.google.co.jp/trends/hottrends/atom/hourly?pn=p4';
+//
+//        $xml      = simplexml_load_file($url);
+//        $xml      = str_replace(["&amp;", "&"], ["&", "&amp;"], $xml->entry->content);
+//        $xml      = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+//        $json     = json_encode($xml);
+//        $keywords = json_decode($json, true);
+//
+//        if ($keywords) {
+//
+//            $num = (is_null($num)) ? mt_rand(0, (count($keywords['li']) - 1) / 2) : $num;
+//
+//            $keyword = $keywords['li'][$num]['span']['a'];
+//
+//            Log::info("取得した急上昇ワード", ['keyword' => $keyword]);
+//
+//            // 急上昇ワードを人工知能に質問してみる
+//            
+//            $ahead = !(date('j')%2==0);
+//            $search_word = $keyword . 'のことどう思う？';
+//            $answer = '';
+//            $answer_messages = [];
+//
+//            for ($i = 0; $i < 5; $i++) {
+//
+//                if ($ahead) {
+//
+//                    // docomo 
+//
+//                    $key = "785a6f616d6c5049536b63384f514f78443236302f7058384c4b34436559476a71725942507254634e4c38";
+//
+//                    $url = 'https://api.apigw.smt.docomo.ne.jp/dialogue/v1/dialogue';
+//                    $url = $url . "?APIKEY=" . $key;
+//
+//                    $params = [
+//                      'utt'            => $search_word,
+//                      "context"        => "",
+//                      "nickname"       => "さくら",
+//                      "nickname_y"     => "サクラ",
+//                      "sex"            => "女",
+//                      "bloodtype"      => "O",
+//                      "birthdateY"     => "1995",
+//                      "birthdateM"     => "8",
+//                      "birthdateD"     => "20",
+//                      "age"            => "18",
+//                      "constellations" => "双子座",
+//                      "place"          => "東京",
+//                      "mode"           => "dialog"
+//                    ];
+//
+//                    $response = Http::postJson($url, $params);
+//                    $response = json_decode($response, true);
+//                    
+//                    $search_word = $response['utt'];
+//                    $answer = 'D「' . $response['utt'] . '」';
+//
+//                    Log::info("取得した人工知能からの回答", ['answer' => $answer]);
+//
+//                } else {
+//
+//                    $url      = 'https://chatbot-api.userlocal.jp/api/chat';
+//                    $params   = [
+//                      'query'  => [
+//                        'key'     => '3249ad8e8790d2b8b4c4',
+//                        'message' => $search_word,
+//                      ],
+//                      'verify' => false
+//                    ];
+//                    $response = Http::get($url, $params);
+//                    $response = json_decode($response, true);
+//                    
+//                    $search_word = $response['result'];
+//                    $answer = 'U「' . $response['result'] . '」';
+//
+//                    Log::info("取得した人工知能からの回答", ['answer' => $answer]);
+//
+//                }
+//                
+//                $ahead = !$ahead;
+//                $answer_messages[] = $answer;
+//                
+//            }
+//
+//
+//            $message = '「今日の急上昇ワードは' . $keyword . 'だって」' . PHP_EOL . implode (PHP_EOL, $answer_messages);
+////            $message .= PHP_EOL . 'https://c1.staticflickr.com/1/474/31575570823_06be332231.jpg';
+//            $message .= PHP_EOL;
+//
+//        } else {
+//
+//            // 急上昇ワードが取得できなかったら固定メッセージ
+//
+//            $messages = Config::get('nini.hello_message');
+//            $num      = (is_null($num)) ? mt_rand(0, count($messages) - 1) : $num;
+//            $message  = preg_replace("/ /", "", $messages[$num]) . PHP_EOL . '[file:1]';
+//
+//        }
+//
+//        Log::info("生成した文字列", ['message' => $message]);
+//        
+//        // 生成した文字列をslackに生成
+//        Util::postSlack($message);
+//
+//        Util::generateLogMessage('END');
+//
+//        return $message;
     }
 
     /**
