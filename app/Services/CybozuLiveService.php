@@ -197,6 +197,58 @@ class CybozuLiveService
 
     }
 
+    /**
+     * @return bool
+     */
+    public function postCgbMessage()
+    {
+
+        Util::generateLogMessage('START');
+
+        try {
+
+            // アクセストークンを取得
+            $this->requestAccessToken();
+
+            // グループIDを取得
+            $this->requestGroupId();
+
+            // トピックIDを取得
+            $this->requestTopicId();
+
+            // POSTする文字列を生成
+            $topic_id        = $this->getTopicId();
+            $comment_message = $this->getMessage();
+
+            // 投稿用XMLの生成
+            $xmlString = $this->getXmlString($topic_id, $comment_message);
+
+            $this->setMessage($xmlString);
+
+            $this->postComment();
+
+        } catch (HTTP_OAuth_Exception $hoe) {
+
+            Log::info('HTTP_OAuth_Exception', ['hoe' => $hoe]);
+            exit;
+
+        } catch (\HTTP_Request2_Exception $hr2e) {
+
+            Log::info('HTTP_Request2_Exception', ['hr2e' => $hr2e]);
+            exit;
+
+        } catch (\Exception $e) {
+
+            Log::info('Exception', ['e' => $e]);
+            exit;
+
+        }
+
+        Util::generateLogMessage('END');
+
+        return true;
+
+    }
 
     /**
      * 興味深い記事をサイボウズLIVEに投稿する
