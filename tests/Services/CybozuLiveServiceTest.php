@@ -181,6 +181,30 @@ EOM;
 
     }
 
+    /**
+     * 外部からの投稿に成功するか
+     *
+     */
+    public function testPostCgbMessage()
+    {
+        $user = [
+          'x_auth_username' => env('CYBOZULIVE_USER_NAME'),
+          'x_auth_password' => env('CYBOZULIVE_PASSWORD'),
+        ];
+
+        $this->service->setUser($user);
+        $this->service->setGroupName('自分用グループ');
+        $this->service->setTopicName('メモするトピ');
+        $this->service->setMessage('検証用投稿');
+
+        $result = $this->service->postCgbMessage();
+
+        Log::info('user : ', $user);
+        Log::info('postCgbMessage : ', ['result' => $result]);
+
+        $this->assertTrue($result);
+
+    }
 
     /**
      * 挨拶文の取得
