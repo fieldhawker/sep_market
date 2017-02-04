@@ -86,8 +86,8 @@
 
     Route::group(['prefix' => 'api'], function () {
         
-        Route::resource('users', 'Api\UsersController');
-        Route::resource('cgb', 'Api\CybozuGwBoardController');
+        Route::resource('/users', 'Api\UsersController');
+        Route::resource('/cgb', 'Api\CybozuGwBoardController');
 
     });
 
