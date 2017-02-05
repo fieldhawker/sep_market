@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use Log;
 use Util;
-use App\Services\CybozuLiveService;
-
+use Input;
+use Session;
+use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
+
+use App\Services\CybozuLiveService;
 
 class CybozuGwBoardController extends Controller
 {
@@ -108,10 +111,14 @@ class CybozuGwBoardController extends Controller
     {
         $input = [];
 
-        $input["topic_name"] = $request->topic_name;
-        $input["text"]       = $request->text;
+        if (!$request["topic_name"] || !$request["text"]) {
+            abort(404);
+        }
 
-        Log::info('[store] リクエスト内容', ['input' => $input]);
+        $input["topic_name"] = $request["topic_name"];
+        $input["text"]       = $request["text"];
+
+        Log::info('[store] 取得結果', ['input' => $input]);
 
         if (!$input["topic_name"] || !$input["text"]) {
             abort(404);

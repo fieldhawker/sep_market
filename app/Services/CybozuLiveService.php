@@ -485,6 +485,10 @@ class CybozuLiveService
 
         }
 
+        if (!isset($topic_id)) {
+            abort(404);
+        }
+
         $topic_id = (string)$topic_id;
 
         Log::info("取得した掲示板のID", ["topic_id" => $topic_id]);
