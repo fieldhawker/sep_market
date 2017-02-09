@@ -68,12 +68,14 @@ class CybozuGwBoardController extends Controller
         ];
 
         $this->cybozu->setUser($user);
-        $this->cybozu->setGroupName(self::SEP_GROUP_NAME);
+        $this->cybozu->setGroupName($input["group_name"]);
         $this->cybozu->setTopicName($input["topic_name"]);
         $this->cybozu->setMessage($input["text"]);
 
         $this->cybozu->postCgbMessage();
-        Util::postSlack($input["topic_name"] . " : " . $input["text"]);
+        Util::postSlack(
+          $input["group_name"] . " : " . $input["topic_name"] . " : " . $input["text"]
+        );
 
         Util::generateLogMessage('END');
 
@@ -111,18 +113,21 @@ class CybozuGwBoardController extends Controller
     {
         $input = [];
 
-        if (!$request["topic_name"] || !$request["text"]) {
+        $param_setting = (
+          $request["group_name"] &&
+          $request["topic_name"] &&
+          $request["text"]
+        );
+
+        if (!$param_setting) {
             abort(404);
         }
 
+        $input["group_name"] = $request["group_name"];
         $input["topic_name"] = $request["topic_name"];
         $input["text"]       = $request["text"];
 
         Log::info('[store] 取得結果', ['input' => $input]);
-
-        if (!$input["topic_name"] || !$input["text"]) {
-            abort(404);
-        }
 
         return $input;
     }

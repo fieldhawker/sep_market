@@ -151,7 +151,7 @@ class CybozuLiveService
             $this->setGwScheduleData();
 
             // 天気を取得
-            $this->requestWeatherTweet();
+//            $this->requestWeatherTweet();
 //            $this->livedoor->setWeatherData();
 
             // 経営の名言を取得
@@ -863,10 +863,10 @@ class CybozuLiveService
         $comment_message = '';
 
         // 天気のメッセージを取得
-        $weather_message = $this->getWeatherMessage();
-        if ($weather_message) {
-            $comment_message .= sprintf('%s%s', $weather_message, PHP_EOL);
-        }
+//        $weather_message = $this->getWeatherMessage();
+//        if ($weather_message) {
+//            $comment_message .= sprintf('%s%s', $weather_message, PHP_EOL);
+//        }
         // 経営者の格言のメッセージを取得
         $meigen_message = $this->getMeigenMessage();
         if ($meigen_message) {
