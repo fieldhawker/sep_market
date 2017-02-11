@@ -55,6 +55,11 @@ class CybozuGwBoardController extends Controller
     {
         Util::generateLogMessage('START');
 
+        Util::postSlack(
+          "store START : " . 
+          $request["group_name"] . " : " . $request["topic_name"] . " : " . $request["text"]
+        );
+
         $input = $this->getRequestParams($request);
 
         $user = [
