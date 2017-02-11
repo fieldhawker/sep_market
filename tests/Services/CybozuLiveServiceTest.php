@@ -187,6 +187,11 @@ EOM;
      */
     public function testPostCgbMessage()
     {
+
+//        $user = [
+//          'x_auth_username' => env('CYBOZULIVE_USER_NAME_DEV'),
+//          'x_auth_password' => env('CYBOZULIVE_PASSWORD_DEV'),
+//        ];
         $user = [
           'x_auth_username' => env('CYBOZULIVE_USER_NAME'),
           'x_auth_password' => env('CYBOZULIVE_PASSWORD'),

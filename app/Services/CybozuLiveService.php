@@ -861,7 +861,31 @@ class CybozuLiveService
         // 挨拶文を取得
 //        $comment_message = $this->getGreetingMessage() . PHP_EOL;
         $comment_message = '';
+        
+        // 週報のメッセージを取得
+        $weekly_report_message = $this->createWeeklyReportMessage($date);
+        if ($weekly_report_message) {
+            $comment_message .= sprintf('%s%s', $weekly_report_message, PHP_EOL);
+        }
 
+        // 月末のメッセージを取得
+        $end_month_message = $this->createEndMonthMessage($date);
+        if ($end_month_message) {
+            $comment_message .= sprintf('%s%s', $end_month_message, PHP_EOL);
+        }
+        
+        // スケジュールのメッセージを取得
+        $gwschedule_message = $this->createGwScheduleMessage();
+        if ($gwschedule_message) {
+            $comment_message .= sprintf('%s%s', $gwschedule_message, PHP_EOL);
+        }
+
+        // チケットのメッセージを取得
+        $ticket_message = $this->createTicketMessage();
+        if ($ticket_message) {
+            $comment_message .= sprintf('%s%s', $ticket_message, PHP_EOL);
+        }
+        
         // 天気のメッセージを取得
 //        $weather_message = $this->getWeatherMessage();
 //        if ($weather_message) {
@@ -876,30 +900,6 @@ class CybozuLiveService
         $shuzo_message = $this->getShuzoMessage();
         if ($shuzo_message) {
             $comment_message .= sprintf('%s%s', $shuzo_message, PHP_EOL);
-        }
-
-        // チケットのメッセージを取得
-        $ticket_message = $this->createTicketMessage();
-        if ($ticket_message) {
-            $comment_message .= sprintf('%s%s', $ticket_message, PHP_EOL);
-        }
-
-        // スケジュールのメッセージを取得
-//        $gwschedule_message = $this->createGwScheduleMessage();
-//        if ($gwschedule_message) {
-//            $comment_message .= sprintf('%s%s', $gwschedule_message, PHP_EOL);
-//        }
-
-        // 週報のメッセージを取得
-        $weekly_report_message = $this->createWeeklyReportMessage($date);
-        if ($weekly_report_message) {
-            $comment_message .= sprintf('%s%s', $weekly_report_message, PHP_EOL);
-        }
-
-        // 月末のメッセージを取得
-        $end_month_message = $this->createEndMonthMessage($date);
-        if ($end_month_message) {
-            $comment_message .= sprintf('%s%s', $end_month_message, PHP_EOL);
         }
 
         // 投稿用XMLの生成
