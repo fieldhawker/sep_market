@@ -161,7 +161,7 @@ class CybozuLiveService
             $this->getShuzoWord();
 
             // 昨日以降に更新されたチケットを取得
-            $this->redmine->setTicketData();
+//            $this->redmine->setTicketData();
 
             // POSTする文字列を生成
             $this->createMessageForDaily();
@@ -881,10 +881,10 @@ class CybozuLiveService
         }
 
         // チケットのメッセージを取得
-        $ticket_message = $this->createTicketMessage();
-        if ($ticket_message) {
-            $comment_message .= sprintf('%s%s', $ticket_message, PHP_EOL);
-        }
+//        $ticket_message = $this->createTicketMessage();
+//        if ($ticket_message) {
+//            $comment_message .= sprintf('%s%s', $ticket_message, PHP_EOL);
+//        }
         
         // 天気のメッセージを取得
 //        $weather_message = $this->getWeatherMessage();
