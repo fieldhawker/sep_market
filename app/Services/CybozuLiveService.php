@@ -863,16 +863,16 @@ class CybozuLiveService
         $comment_message = '';
         
         // 週報のメッセージを取得
-        $weekly_report_message = $this->createWeeklyReportMessage($date);
-        if ($weekly_report_message) {
-            $comment_message .= sprintf('%s%s', $weekly_report_message, PHP_EOL);
-        }
+//        $weekly_report_message = $this->createWeeklyReportMessage($date);
+//        if ($weekly_report_message) {
+//            $comment_message .= sprintf('%s%s', $weekly_report_message, PHP_EOL);
+//        }
 
         // 月末のメッセージを取得
-        $end_month_message = $this->createEndMonthMessage($date);
-        if ($end_month_message) {
-            $comment_message .= sprintf('%s%s', $end_month_message, PHP_EOL);
-        }
+//        $end_month_message = $this->createEndMonthMessage($date);
+//        if ($end_month_message) {
+//            $comment_message .= sprintf('%s%s', $end_month_message, PHP_EOL);
+//        }
         
         // スケジュールのメッセージを取得
         $gwschedule_message = $this->createGwScheduleMessage();
