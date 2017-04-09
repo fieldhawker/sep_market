@@ -20,6 +20,11 @@ class UserTest extends TestCase
 ////        Artisan::call('db:seed');
         
     }
+
+    public function testExample()
+    {
+        $this->assertTrue(true);
+    }
     
 //    /**
 //     *

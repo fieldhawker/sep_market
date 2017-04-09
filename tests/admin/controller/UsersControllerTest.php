@@ -18,6 +18,10 @@ class UsersControllerTest extends TestCase
 
     }
 
+    public function testExample()
+    {
+        $this->assertTrue(true);
+    }
 //    /**
 //     *  リダイレクトの確認
 //     *
