@@ -7,7 +7,11 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 class OperationLogsControllerTest extends TestCase
 {
     use DatabaseMigrations;
-    
+
+    public function testExample()
+    {
+        $this->assertTrue(true);
+    }
     /**
      * 画面表示
      *
