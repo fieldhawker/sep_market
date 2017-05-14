@@ -115,4 +115,11 @@ return [
     '31' => 'https://drive.google.com/file/d/0B52zasmSZm2ATW84NTJkTS0xRkE/view?usp=sharing',
   ],
 
+  'cgbj_key' => [
+    '1'  => '3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh', // テスト用
+    '2'  => 'HDwpnC6yAzjb6F7PaJysGuRMNpRAuYzx',
+    '3'  => 'aFCPKYrjCtnhae5iZJNVu99LZVa6BSTL',
+    '4'  => 'QZkZDAePWAHMZG7Te7yFn4MLzmwjnRQj',
+    '5'  => 'i2bn2WUPPhBCKBLuWiFZAAAFpfZkVdaJ',
+  ],
 ];
