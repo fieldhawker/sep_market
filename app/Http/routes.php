@@ -88,6 +88,7 @@
         
         Route::resource('/users', 'Api\UsersController');
         Route::resource('/cgb', 'Api\CybozuGwBoardController');
+        Route::resource('/cgbj', 'Api\CybozuGwBoardJsonController');
 
     });
 

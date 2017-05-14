@@ -227,7 +227,7 @@ class CybozuLiveService
 
             $this->postComment();
 
-        } catch (HTTP_OAuth_Exception $hoe) {
+        } catch (\HTTP_OAuth_Exception $hoe) {
 
             Log::info('HTTP_OAuth_Exception', ['hoe' => $hoe]);
             exit;
