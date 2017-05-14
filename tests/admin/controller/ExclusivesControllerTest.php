@@ -10,7 +10,8 @@ class ExclusivesControllerTest extends TestCase
 
     public function testExample()
     {
-        $this->assertTrue(true);
+        $bool = true;
+        $this->assertTrue($bool);
     }
     
 //    /**

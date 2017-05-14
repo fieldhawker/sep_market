@@ -20,7 +20,8 @@ class UsersControllerTest extends TestCase
 
     public function testExample()
     {
-        $this->assertTrue(true);
+        $bool = true;
+        $this->assertTrue($bool);
     }
 //    /**
 //     *  リダイレクトの確認
