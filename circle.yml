@@ -12,3 +12,5 @@ deployment:
     heroku:
       appname: sepima
 test:
+  override:
+    - vendor/bin/phpunit
