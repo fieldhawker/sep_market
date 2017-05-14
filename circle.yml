@@ -11,3 +11,4 @@ deployment:
     branch: master
     heroku:
       appname: sepima
+test:
