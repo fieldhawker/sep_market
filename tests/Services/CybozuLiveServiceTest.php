@@ -227,6 +227,9 @@ EOM;
     {
         
         $this->service->requestWeatherTweet();
+
+        $bool = true;
+        $this->assertTrue($bool);
         
     }
 }

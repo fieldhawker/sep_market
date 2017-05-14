@@ -520,9 +520,13 @@ class CybozuLiveService
         $res = $this->requestSearchTweet($params);
 
         $res     = json_decode($res, true);
-        $text    = str_replace('RT @Yahoo_weather: ', '', $res['statuses'][0]['text']);
-        $message = '☆今日の天気です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
-
+        $message = "";
+        
+        if (!empty($res['statuses'])) {
+            $text    = str_replace('RT @Yahoo_weather: ', '', $res['statuses'][0]['text']);
+            $message = '☆今日の天気です。' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL . $border;
+        }
+        
         $this->setWeatherMessage($message);
 
         // 生成した文字列をslackに生成

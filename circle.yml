@@ -11,3 +11,6 @@ deployment:
     branch: master
     heroku:
       appname: sepima
+test:
+  override:
+    - vendor/bin/phpunit --verbose --debug
