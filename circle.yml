@@ -13,4 +13,4 @@ deployment:
       appname: sepima
 test:
   override:
-    - vendor/bin/phpunit
+    - vendor/bin/phpunit --verbose
