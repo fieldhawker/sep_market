@@ -21,65 +21,54 @@ class CybozuGwBoardJsonTest extends TestCase
 
     /**
      * JSON形式でのサイボウズへの連携 正常系
-     * 
+     *
      */
     public function testSuccessStoreRequest()
     {
+
+//        "{'access_key': '3r8DMbQPT5gUPT3HVyh5HmTnEtbH1rWh', 'group_name': '検証用グループ', 'topic_name': '検証用トピック', 'text': '自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest'}",
+
         $response = $this->json(
           "POST",
           "/api/cgbj/",
           [
-            'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
-            'group_name' => "検証用グループ",
-            'topic_name' => "検証用トピック",
-            'text'       => "自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest",
-          ]
+            "value1" => [
+              'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
+              'group_name' => "検証用グループ",
+              'topic_name' => "検証用トピック",
+              'text'       => "自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest",
+            ]
+          ],
+          array(),
+          array('CONTENT_TYPE' => 'application/json'),
+          array()
         );
 
         $response->assertResponseOk();
 
     }
-    
+
     /**
      * JSON形式でのサイボウズへの連携 異常系
      *
      */
     public function testFailureStoreRequest()
     {
-        
-        $response = $this->json(
-          "POST",
-          "/api/cgbj/",
-          [
-            'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH1rWh",
-            'group_name' => "検証用グループ",
-            'topic_name' => "検証用トピック",
-            'text'       => "自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest",
-          ]
-        );
-        
-        $response->assertResponseStatus("404");
-        
-        $response = $this->json(
-          "POST",
-          "/api/cgbj/",
-          [
-            'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
-            'topic_name' => "検証用トピック",
-            'text'       => "自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest",
-          ]
-        );
-        
-        $response->assertResponseStatus("404");
 
         $response = $this->json(
           "POST",
           "/api/cgbj/",
           [
-            'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
-            'group_name' => "検証用グループ",
-            'text'       => "自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest",
-          ]
+            "value1" => [
+              'access_key' => "1r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
+              'group_name' => "検証用グループ",
+              'topic_name' => "検証用トピック",
+              'text'       => "自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest",
+            ]
+          ],
+          array(),
+          array('CONTENT_TYPE' => 'application/json'),
+          array()
         );
 
         $response->assertResponseStatus("404");
@@ -88,14 +77,53 @@ class CybozuGwBoardJsonTest extends TestCase
           "POST",
           "/api/cgbj/",
           [
-            'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
-            'group_name' => "検証用グループ",
-            'topic_name' => "検証用トピック",
-          ]
+            "value1" => [
+              'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
+              'topic_name' => "検証用トピック",
+              'text'       => "自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest",
+            ]
+          ],
+          array(),
+          array('CONTENT_TYPE' => 'application/json'),
+          array()
         );
 
         $response->assertResponseStatus("404");
-        
+
+        $response = $this->json(
+          "POST",
+          "/api/cgbj/",
+          [
+            "value1" => [
+              'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
+              'group_name' => "検証用グループ",
+              'text'       => "自動テストによる投稿 - CybozuGwBoardJsonTest.testSuccessStoreRequest",
+            ]
+          ],
+          array(),
+          array('CONTENT_TYPE' => 'application/json'),
+          array()
+        );
+
+        $response->assertResponseStatus("404");
+
+        $response = $this->json(
+          "POST",
+          "/api/cgbj/",
+          [
+            "value1" => [
+              'access_key' => "3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh",
+              'group_name' => "検証用グループ",
+              'topic_name' => "検証用トピック",
+            ]
+          ],
+          array(),
+          array('CONTENT_TYPE' => 'application/json'),
+          array()
+        );
+
+        $response->assertResponseStatus("404");
+
     }
-    
+
 }
