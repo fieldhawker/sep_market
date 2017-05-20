@@ -117,7 +117,7 @@ return [
 
   'cgbj_key' => [
     '1'  => '3r8DMbQPT5gUPT3HVyh5HmTnEtbH6rWh', // テスト用
-    '2'  => 'HDwpnC6yAzjb6F7PaJysGuRMNpRAuYzx',
+    '2'  => 'HDwpnC6yAzjb6F7PaJysGuRMNpRAuYzx', // 高野用
     '3'  => 'aFCPKYrjCtnhae5iZJNVu99LZVa6BSTL',
     '4'  => 'QZkZDAePWAHMZG7Te7yFn4MLzmwjnRQj',
     '5'  => 'i2bn2WUPPhBCKBLuWiFZAAAFpfZkVdaJ',

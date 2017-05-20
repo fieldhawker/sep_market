@@ -126,35 +126,36 @@ class CybozuGwBoardJsonController extends Controller
     {
         $input = [];
 
+        $params = $request->input('value1');
+
+        $input["access_key"] = isset($params['access_key']) ? $params['access_key'] : null;
+        $input["group_name"] = isset($params['group_name']) ? $params['group_name'] : null;
+        $input["topic_name"] = isset($params['topic_name']) ? $params['topic_name'] : null;
+        $input["text"]       = isset($params['text']) ? $params['text'] : null;
+
         Util::postSlack(
           "POST DATA : " . PHP_EOL .
-          $request->input('access_key') . PHP_EOL .
-          $request->input('group_name') . PHP_EOL .
-          $request->input('topic_name') . PHP_EOL .
-          $request->input('text')
+          $input['access_key'] . PHP_EOL .
+          $input['group_name'] . PHP_EOL .
+          $input['topic_name'] . PHP_EOL .
+          $input['text']
         );
 
         $param_setting = (
-          $request->has('access_key') &&
-          $request->has('group_name') &&
-          $request->has('topic_name') &&
-          $request->has('text')
+          $input['access_key'] &&
+          $input['group_name'] &&
+          $input['topic_name'] &&
+          $input['text']
         );
 
         if (!$param_setting) {
             abort(404);
         }
-
-        $input["access_key"] = $request->input('access_key');
         
         $keys = Config::get('const.cgbj_key');
         if (array_search($input["access_key"], $keys) === false) {
             abort(404);
         }
-
-        $input["group_name"] = $request->input('group_name');
-        $input["topic_name"] = $request->input('topic_name');
-        $input["text"]       = $request->input('text');
 
         Log::info('[store] 取得結果', ['input' => $input]);
 
