@@ -16,7 +16,7 @@ class PostArtificialIntelligenceTalk extends Command
     private $cybozu;
 
     const SEP_GROUP_NAME = '(株)エス・イー・プロジェクト';
-    const SEP_TOPIC_NAME = 'よもやま話が続くトピ';
+    const SEP_TOPIC_NAME = 'いんふぉめーしょん';
 //    const SEP_GROUP_NAME = '検証用グループ';
 //    const SEP_TOPIC_NAME = '検証用トピック';
 //    const SEP_GROUP_NAME = '自分用グループ';
